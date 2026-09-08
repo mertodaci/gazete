@@ -19,6 +19,7 @@ Türkiye'ye yönelik, tamamen otomatik çalışan, kişiselleştirilmiş yapay z
 - **AI sağlayıcı:** Claude API (küçük/ucuz bir model, örn. Haiku ailesi) — özetleme ve gerektiğinde kategori sınıflandırma.
 - **E-posta gönderimi:** Transactional e-posta servisi (Resend veya Brevo) — VPS'ten doğrudan SMTP kullanılmayacak (deliverability riski).
 - **Altyapı:** Kullanıcının kendi VPS'i (henüz boş, Docker kurulacak). Domain henüz yok — başlangıçta IP veya geçici subdomain ile çalışılabilir, e-posta linklerindeki base URL konfigüre edilebilir olacak.
+- **Gönderici e-posta (geliştirme aşaması):** Doğrulanmış bir domain olmadan Resend/Brevo, hesap sahibinin kendi (doğrulanmış) e-posta adresi dışına toplu gönderime izin vermez. Geliştirme ve test süresince gönderim yalnızca geliştiricinin kendi e-posta adresine yapılacak. **Gerçek abonelere açılmadan önce bir domain satın alınıp DNS (SPF/DKIM) kayıtları eklenmelidir** — kod, `FROM_EMAIL`/domain'i ortam değişkeninden okuyacak şekilde yazılacağı için bu geçiş kod değişikliği gerektirmez, sadece konfigürasyon + domain doğrulamasıdır.
 - **Teknoloji yığını:** Node.js + TypeScript, PostgreSQL, Prisma ORM.
 - **Zaman dilimi:** Europe/Istanbul = UTC+3 sabit (Türkiye'de DST yok, 2016'dan beri) — zamanlama mantığını basitleştiriyor.
 
