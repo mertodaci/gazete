@@ -2574,15 +2574,17 @@ git commit -m "chore: add production Dockerfiles for web and worker"
 
 ---
 
-### Task 22: Docker Compose + Caddy for the VPS
+### Task 22: Docker Compose + host nginx for the VPS
 
 **Files:**
 - Create: `docker-compose.yml`
-- Create: `Caddyfile`
+- Create: `deploy/nginx/gazete.conf`
 - Create: `DEPLOY.md`
 
 **Interfaces:**
-- Produces: the full production stack (`postgres`, `web`, `worker`, `caddy`) runnable on the VPS with `docker compose up -d`.
+- Produces: the app stack (`postgres`, `web`, `worker`) runnable on the VPS with `docker compose up -d`, fronted by the VPS's existing host-level nginx (already running and serving two other unrelated apps — ports 80/443 are occupied by it, so this project does not run its own edge proxy container).
+
+This project's VPS already runs nginx directly on the host (not in Docker) on ports 80/443, serving two other applications on their own ports. This task must not touch that nginx's existing config for those apps — it only adds one new server block for this project's domains, and lets Docker's `web` container listen on `127.0.0.1:3000` (loopback-only, not exposed on the public interface) so only the host nginx can reach it.
 
 - [ ] **Step 1: Create `docker-compose.yml`**
 
@@ -2612,6 +2614,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:3000:3000"
     environment:
       DATABASE_URL: postgresql://gazete:${POSTGRES_PASSWORD}@postgres:5432/gazete
       RESEND_API_KEY: ${RESEND_API_KEY}
@@ -2636,36 +2640,38 @@ services:
       - migrate
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - gazete_caddy_data:/data
-    depends_on:
-      - web
-    restart: unless-stopped
-
 volumes:
   gazete_pg_data:
-  gazete_caddy_data:
 ```
 
-- [ ] **Step 2: Create `Caddyfile`**
+The `web` service's port mapping (`"127.0.0.1:3000:3000"`) binds only to the VPS's loopback interface — it is not reachable from the public internet directly, only from processes on the VPS itself (i.e. the host nginx). This is what lets it coexist with the other two apps' ports without any port conflict.
 
-The project owns two real domains: `turkiyeningazetesi.com` (primary) and `turkiyeningazetesi.org` (redirects to `.com`). Caddy auto-provisions a TLS certificate for each domain listed, as long as its DNS A record already points at this VPS's IP before Caddy starts (see `DEPLOY.md`'s DNS step).
+- [ ] **Step 2: Create `deploy/nginx/gazete.conf`**
 
-```
-turkiyeningazetesi.com, www.turkiyeningazetesi.com {
-  reverse_proxy web:3000
+This file is not consumed by Docker Compose — it's a version-controlled copy of the config the VPS's existing host nginx needs, to be copied into place manually (see `DEPLOY.md`). Keeping it in the repo means future changes to it go through the same review as everything else, even though applying it is a manual step.
+
+```nginx
+server {
+    listen 80;
+    server_name turkiyeningazetesi.com www.turkiyeningazetesi.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 
-turkiyeningazetesi.org, www.turkiyeningazetesi.org {
-  redir https://turkiyeningazetesi.com{uri} permanent
+server {
+    listen 80;
+    server_name turkiyeningazetesi.org www.turkiyeningazetesi.org;
+    return 301 https://turkiyeningazetesi.com$request_uri;
 }
 ```
+
+Note: this starts as plain HTTP on port 80 only. `DEPLOY.md`'s Step 3 runs `certbot --nginx`, which edits this file in place on the VPS to add the `listen 443 ssl` blocks and certificate paths automatically — that edited, TLS-enabled version is not reflected back into this repo's copy (certbot modifies the live file on the server, not this source-controlled template), which is standard practice for certbot-managed nginx configs.
 
 - [ ] **Step 3: Create `DEPLOY.md`**
 
@@ -2691,15 +2697,24 @@ DNS propagation can take anywhere from a few minutes to a few hours. Verify with
    `RESEND_WEBHOOK_SECRET`, `FROM_EMAIL=info@turkiyeningazetesi.com`, `ANTHROPIC_API_KEY`, `BASE_URL=https://turkiyeningazetesi.com`.
    `RESEND_API_KEY` requires verifying `turkiyeningazetesi.com` as a sending domain in the Resend dashboard first (it will ask you to add its own DNS TXT/CNAME records, separate from the A records above).
 4. Seed the RSS sources once: `docker compose run --rm migrate npx prisma db seed --schema=packages/db/prisma/schema.prisma`
-5. Start everything: `docker compose up -d --build`
+5. Start the app stack: `docker compose up -d --build` — this does **not** touch ports 80/443; `web` only binds to `127.0.0.1:3000`.
 6. Check logs: `docker compose logs -f worker`
+
+## 3. Wire up the existing host nginx (only nginx-level step — do not touch the other two apps' server blocks)
+
+1. Copy `deploy/nginx/gazete.conf` from this repo to `/etc/nginx/sites-available/gazete.conf` on the VPS.
+2. Symlink it into `sites-enabled`: `sudo ln -s /etc/nginx/sites-available/gazete.conf /etc/nginx/sites-enabled/gazete.conf`
+3. Test the config before reloading, so a typo can't take down the other two apps: `sudo nginx -t`
+4. Reload: `sudo systemctl reload nginx`
+5. Issue TLS certificates (this edits `gazete.conf` in place to add the HTTPS server blocks): `sudo certbot --nginx -d turkiyeningazetesi.com -d www.turkiyeningazetesi.com -d turkiyeningazetesi.org -d www.turkiyeningazetesi.org`
+6. Visit `https://turkiyeningazetesi.com` to confirm the app loads, and `https://turkiyeningazetesi.org` to confirm it redirects.
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docker-compose.yml Caddyfile DEPLOY.md
-git commit -m "chore: add Docker Compose and Caddy deployment config"
+git add docker-compose.yml deploy/nginx/gazete.conf DEPLOY.md
+git commit -m "chore: add Docker Compose and host-nginx deployment config"
 ```
 
 ---
