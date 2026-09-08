@@ -21,6 +21,7 @@ export async function sendDailyDigest(options: { dryRun?: boolean } = {}): Promi
     if (existing?.status === "sent") continue;
 
     const stories = await getStoriesForSubscriber(subscriber.id, digestDate);
+    if (stories.length === 0) continue;
 
     const html = renderDigestHtml(stories, subscriber.preferencesToken, config.baseUrl);
 
