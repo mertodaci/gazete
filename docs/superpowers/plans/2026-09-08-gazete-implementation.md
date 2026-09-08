@@ -2655,23 +2655,41 @@ volumes:
 
 - [ ] **Step 2: Create `Caddyfile`**
 
+The project owns two real domains: `turkiyeningazetesi.com` (primary) and `turkiyeningazetesi.org` (redirects to `.com`). Caddy auto-provisions a TLS certificate for each domain listed, as long as its DNS A record already points at this VPS's IP before Caddy starts (see `DEPLOY.md`'s DNS step).
+
 ```
-{$BASE_DOMAIN} {
+turkiyeningazetesi.com, www.turkiyeningazetesi.com {
   reverse_proxy web:3000
 }
-```
 
-Note: while there is no domain yet, set `BASE_DOMAIN` to the VPS's bare IP (e.g. `http://203.0.113.10`) — Caddy serves plain HTTP for an IP address (it only auto-provisions TLS for a real domain). Once a domain is bought and its DNS A record points at the VPS, change `BASE_DOMAIN` to that domain and Caddy will obtain a TLS certificate automatically on the next restart.
+turkiyeningazetesi.org, www.turkiyeningazetesi.org {
+  redir https://turkiyeningazetesi.com{uri} permanent
+}
+```
 
 - [ ] **Step 3: Create `DEPLOY.md`**
 
 ```markdown
 # Deploy
 
-1. On the VPS, install Docker + Docker Compose plugin.
-2. Clone this repo.
-3. Create a `.env` file (not committed) with: `POSTGRES_PASSWORD`, `RESEND_API_KEY`,
-   `RESEND_WEBHOOK_SECRET`, `FROM_EMAIL`, `ANTHROPIC_API_KEY`, `BASE_URL`, `BASE_DOMAIN`.
+## 1. Point DNS at the VPS (do this first — certificates depend on it)
+
+At your domain registrar/DNS provider, create these A records, all pointing at the VPS's public IP:
+
+- `turkiyeningazetesi.com` → VPS IP
+- `www.turkiyeningazetesi.com` → VPS IP
+- `turkiyeningazetesi.org` → VPS IP
+- `www.turkiyeningazetesi.org` → VPS IP
+
+DNS propagation can take anywhere from a few minutes to a few hours. Verify with `dig turkiyeningazetesi.com +short` (or `nslookup` on Windows) before continuing — it should print the VPS's IP.
+
+## 2. First-time VPS setup
+
+1. Install Docker + the Docker Compose plugin on the VPS.
+2. Clone this repo onto the VPS (e.g. into `/opt/gazete`).
+3. Create a `.env` file there (not committed) with: `POSTGRES_PASSWORD`, `RESEND_API_KEY`,
+   `RESEND_WEBHOOK_SECRET`, `FROM_EMAIL=info@turkiyeningazetesi.com`, `ANTHROPIC_API_KEY`, `BASE_URL=https://turkiyeningazetesi.com`.
+   `RESEND_API_KEY` requires verifying `turkiyeningazetesi.com` as a sending domain in the Resend dashboard first (it will ask you to add its own DNS TXT/CNAME records, separate from the A records above).
 4. Seed the RSS sources once: `docker compose run --rm migrate npx prisma db seed --schema=packages/db/prisma/schema.prisma`
 5. Start everything: `docker compose up -d --build`
 6. Check logs: `docker compose logs -f worker`
@@ -2682,6 +2700,70 @@ Note: while there is no domain yet, set `BASE_DOMAIN` to the VPS's bare IP (e.g.
 ```bash
 git add docker-compose.yml Caddyfile DEPLOY.md
 git commit -m "chore: add Docker Compose and Caddy deployment config"
+```
+
+---
+
+### Task 23: GitLab CI/CD pipeline for automated VPS deploy
+
+**Files:**
+- Create: `.gitlab-ci.yml`
+- Modify: `DEPLOY.md` (append a GitLab CI/CD setup section)
+
+**Interfaces:**
+- Produces: a GitLab CI pipeline that, on every push to `main`, SSHes into the VPS and re-deploys via `docker compose up -d --build`.
+
+This task only creates the pipeline definition and documents the manual GitLab/VPS setup steps — it cannot itself create a GitLab project, generate SSH keys, or add CI/CD variables, since those require the user's own GitLab account and VPS access, none of which are available to an implementer working in this repo checkout.
+
+- [ ] **Step 1: Create `.gitlab-ci.yml`**
+
+```yaml
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  only:
+    - main
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$VPS_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+  script:
+    - ssh "$VPS_USER@$VPS_HOST" "cd /opt/gazete && git pull origin main && docker compose up -d --build"
+```
+
+- [ ] **Step 2: Append a GitLab setup section to `DEPLOY.md`**
+
+Add this section to the end of the `DEPLOY.md` file created in Task 22:
+
+```markdown
+
+## 3. GitLab CI/CD (automated deploy on push)
+
+This repo's source of truth stays on GitHub. GitLab is used only for its CI/CD runner, via a pull mirror:
+
+1. Create a new GitLab project (empty, no README).
+2. In the GitLab project's **Settings → Repository → Mirroring repositories**, add this repo's GitHub HTTPS URL as a **pull mirror** (GitLab periodically pulls new commits from GitHub — no change needed to how you push to GitHub).
+3. On the VPS, create a dedicated deploy user (or reuse an existing one) and generate an SSH key pair for it: `ssh-keygen -t ed25519 -C "gitlab-deploy" -f ~/.ssh/gitlab_deploy` (no passphrase, since CI runs non-interactively).
+4. Add the **public** key (`~/.ssh/gitlab_deploy.pub`) to that VPS user's `~/.ssh/authorized_keys`.
+5. In the GitLab project's **Settings → CI/CD → Variables**, add three variables, all marked **Protected** and **Masked** (except `VPS_HOST`, which isn't secret):
+   - `VPS_SSH_PRIVATE_KEY` — the contents of the **private** key file (`~/.ssh/gitlab_deploy`)
+   - `VPS_HOST` — the VPS's IP or `turkiyeningazetesi.com`
+   - `VPS_USER` — the deploy user's username
+6. Make sure `/opt/gazete` on the VPS is a clone of this repo with `origin` pointing at GitHub (`git remote -v` to check), so `git pull origin main` in the pipeline has something to pull from.
+7. Push to GitHub's `main` branch; once GitLab's mirror picks up the new commit (mirroring runs on an interval — check **Repository → Mirroring** for "Update now" to trigger it immediately while testing), the pipeline runs automatically and re-deploys.
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add .gitlab-ci.yml DEPLOY.md
+git commit -m "chore: add GitLab CI/CD pipeline for automated VPS deploy"
 ```
 
 ---
