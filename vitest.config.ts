@@ -22,6 +22,11 @@ export default defineConfig({
   },
   test: {
     include: ["apps/**/*.test.ts", "packages/**/*.test.ts"],
-    environment: "node"
+    environment: "node",
+    // Multiple test files share the same Postgres tables and isolate
+    // themselves with table-wide deleteMany() calls in beforeEach. Running
+    // files concurrently lets one file's cleanup race another file's
+    // in-flight assertions, so keep file execution sequential.
+    fileParallelism: false
   }
 });
