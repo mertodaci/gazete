@@ -1902,7 +1902,7 @@ describe("processNewArticles", () => {
     await processNewArticles();
     vi.mocked(summarizeArticle).mockClear();
 
-    const second = await makeArticle({}, "Merkez Bankası'ndan faiz kararı açıklaması geldi");
+    const second = await makeArticle({}, "Merkez Bankası faiz kararını duyurdu");
     await processNewArticles();
 
     const stories = await prisma.story.findMany({ include: { storyArticles: true } });
