@@ -2293,6 +2293,24 @@ function today(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
+async function makeStoryForToday(category: "gundem" | "spor" = "gundem") {
+  const source = await prisma.source.create({
+    data: { name: "Test Kaynak", rssUrl: `https://example.com/rss-${Date.now()}-${Math.random()}`, category }
+  });
+  const article = await prisma.article.create({
+    data: { sourceId: source.id, url: `https://example.com/a-${Date.now()}-${Math.random()}`, title: "Test Haberi", publishedAt: new Date() }
+  });
+  return prisma.story.create({
+    data: {
+      category,
+      canonicalTitle: "Test Haberi",
+      aiSummaryTr: "Test özeti.",
+      digestDate: today(),
+      storyArticles: { create: { articleId: article.id } }
+    }
+  });
+}
+
 describe("sendDailyDigest", () => {
   beforeEach(async () => {
     sendMock.mockClear();
@@ -2311,6 +2329,7 @@ describe("sendDailyDigest", () => {
     const sub = await prisma.subscriber.create({
       data: { email: "a@example.com", preferencesToken: generateTestToken(), categories: { create: [{ category: "gundem" }] } }
     });
+    await makeStoryForToday();
 
     await sendDailyDigest();
 
@@ -2327,6 +2346,7 @@ describe("sendDailyDigest", () => {
     await prisma.subscriber.create({
       data: { email: "b@example.com", preferencesToken: generateTestToken(), status: "unsubscribed", categories: { create: [{ category: "gundem" }] } }
     });
+    await makeStoryForToday();
 
     await sendDailyDigest();
     expect(sendMock).not.toHaveBeenCalled();
@@ -2336,6 +2356,7 @@ describe("sendDailyDigest", () => {
     const sub = await prisma.subscriber.create({
       data: { email: "c@example.com", preferencesToken: generateTestToken(), categories: { create: [{ category: "gundem" }] } }
     });
+    await makeStoryForToday();
     await prisma.digestSend.create({ data: { subscriberId: sub.id, digestDate: today(), status: "sent", sentAt: new Date() } });
 
     await sendDailyDigest();
@@ -2346,6 +2367,7 @@ describe("sendDailyDigest", () => {
     await prisma.subscriber.create({
       data: { email: "d@example.com", preferencesToken: generateTestToken(), categories: { create: [{ category: "gundem" }] } }
     });
+    await makeStoryForToday();
 
     await sendDailyDigest({ dryRun: true });
     expect(sendMock).not.toHaveBeenCalled();
@@ -2353,6 +2375,7 @@ describe("sendDailyDigest", () => {
 
   it("marks the DigestSend as failed if the send throws, without stopping other subscribers", async () => {
     sendMock.mockRejectedValueOnce(new Error("API down")).mockResolvedValueOnce({ data: { id: "x" }, error: null });
+    await makeStoryForToday();
 
     const failing = await prisma.subscriber.create({
       data: { email: "fail@example.com", preferencesToken: generateTestToken(), categories: { create: [{ category: "gundem" }] } }
@@ -2371,6 +2394,21 @@ describe("sendDailyDigest", () => {
     });
     expect(failingRecord?.status).toBe("failed");
     expect(okRecord?.status).toBe("sent");
+  });
+
+  it("does not send and does not create a DigestSend row when the subscriber has no matching stories that day", async () => {
+    await prisma.subscriber.create({
+      data: { email: "empty@example.com", preferencesToken: generateTestToken(), categories: { create: [{ category: "spor" }] } }
+    });
+    // Only a "gundem" story exists today; this subscriber only follows "spor", so
+    // getStoriesForSubscriber returns [] and the digest must be skipped entirely.
+    await makeStoryForToday("gundem");
+
+    await sendDailyDigest();
+
+    expect(sendMock).not.toHaveBeenCalled();
+    const records = await prisma.digestSend.findMany({});
+    expect(records).toHaveLength(0);
   });
 });
 ```
