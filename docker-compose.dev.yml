@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gazete
+      POSTGRES_PASSWORD: gazete
+      POSTGRES_DB: gazete
+    ports:
+      - "5432:5432"
+    volumes:
+      - gazete_pg_dev:/var/lib/postgresql/data
+
+volumes:
+  gazete_pg_dev:
