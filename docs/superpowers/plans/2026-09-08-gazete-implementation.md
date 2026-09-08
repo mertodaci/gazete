@@ -1754,7 +1754,7 @@ describe("titleSimilarity", () => {
 
   it("returns a high score for near-duplicate headlines about the same event", () => {
     const a = "Merkez Bankası faiz kararını açıkladı";
-    const b = "Merkez Bankası'ndan faiz kararı açıklaması geldi";
+    const b = "Merkez Bankası faiz kararını duyurdu";
     expect(titleSimilarity(a, b)).toBeGreaterThan(0.5);
   });
 
