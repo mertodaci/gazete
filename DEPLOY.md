@@ -30,3 +30,18 @@ DNS propagation can take anywhere from a few minutes to a few hours. Verify with
 4. Reload: `sudo systemctl reload nginx`
 5. Issue TLS certificates (this edits `gazete.conf` in place to add the HTTPS server blocks): `sudo certbot --nginx -d turkiyeningazetesi.com -d www.turkiyeningazetesi.com -d turkiyeningazetesi.org -d www.turkiyeningazetesi.org`
 6. Visit `https://turkiyeningazetesi.com` to confirm the app loads, and `https://turkiyeningazetesi.org` to confirm it redirects.
+
+## 4. GitLab CI/CD (automated deploy on push)
+
+This repo's source of truth stays on GitHub. GitLab is used only for its CI/CD runner, via a pull mirror:
+
+1. Create a new GitLab project (empty, no README).
+2. In the GitLab project's **Settings → Repository → Mirroring repositories**, add this repo's GitHub HTTPS URL as a **pull mirror** (GitLab periodically pulls new commits from GitHub — no change needed to how you push to GitHub).
+3. On the VPS, create a dedicated deploy user (or reuse an existing one) and generate an SSH key pair for it: `ssh-keygen -t ed25519 -C "gitlab-deploy" -f ~/.ssh/gitlab_deploy` (no passphrase, since CI runs non-interactively).
+4. Add the **public** key (`~/.ssh/gitlab_deploy.pub`) to that VPS user's `~/.ssh/authorized_keys`.
+5. In the GitLab project's **Settings → CI/CD → Variables**, add three variables, all marked **Protected** and **Masked** (except `VPS_HOST`, which isn't secret):
+   - `VPS_SSH_PRIVATE_KEY` — the contents of the **private** key file (`~/.ssh/gitlab_deploy`)
+   - `VPS_HOST` — the VPS's IP or `turkiyeningazetesi.com`
+   - `VPS_USER` — the deploy user's username
+6. Make sure `/opt/gazete` on the VPS is a clone of this repo with `origin` pointing at GitHub (`git remote -v` to check), so `git pull origin main` in the pipeline has something to pull from.
+7. Push to GitHub's `main` branch; once GitLab's mirror picks up the new commit (mirroring runs on an interval — check **Repository → Mirroring** for "Update now" to trigger it immediately while testing), the pipeline runs automatically and re-deploys.
