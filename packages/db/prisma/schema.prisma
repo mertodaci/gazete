@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  gundem
+  ekonomi
+  teknoloji
+  spor
+  dunya
+  saglik
+  kultur_sanat
+}
+
+enum SubscriberStatus {
+  active
+  unsubscribed
+}
+
+enum DigestStatus {
+  pending
+  sent
+  failed
+}
+
+model Source {
+  id       String    @id @default(uuid())
+  name     String
+  rssUrl   String    @unique @map("rss_url")
+  category Category
+  active   Boolean   @default(true)
+  articles Article[]
+
+  @@map("sources")
+}
+
+model Article {
+  id             String         @id @default(uuid())
+  sourceId       String         @map("source_id")
+  source         Source         @relation(fields: [sourceId], references: [id])
+  url            String         @unique
+  title          String
+  publishedAt    DateTime       @map("published_at")
+  fetchedAt      DateTime       @default(now()) @map("fetched_at")
+  rawDescription String?        @map("raw_description")
+  storyArticles  StoryArticle[]
+
+  @@map("articles")
+}
+
+model Story {
+  id             String         @id @default(uuid())
+  category       Category
+  canonicalTitle String         @map("canonical_title")
+  aiSummaryTr    String?        @map("ai_summary_tr")
+  digestDate     DateTime       @map("digest_date") @db.Date
+  createdAt      DateTime       @default(now()) @map("created_at")
+  storyArticles  StoryArticle[]
+
+  @@map("stories")
+}
+
+model StoryArticle {
+  storyId   String  @map("story_id")
+  story     Story   @relation(fields: [storyId], references: [id])
+  articleId String  @map("article_id")
+  article   Article @relation(fields: [articleId], references: [id])
+
+  @@id([storyId, articleId])
+  @@map("story_articles")
+}
+
+model Subscriber {
+  id               String               @id @default(uuid())
+  email            String               @unique
+  status           SubscriberStatus     @default(active)
+  preferencesToken String               @unique @map("preferences_token")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  categories       SubscriberCategory[]
+  digestSends      DigestSend[]
+
+  @@map("subscribers")
+}
+
+model SubscriberCategory {
+  subscriberId String     @map("subscriber_id")
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id])
+  category     Category
+
+  @@id([subscriberId, category])
+  @@map("subscriber_categories")
+}
+
+model DigestSend {
+  id           String       @id @default(uuid())
+  subscriberId String       @map("subscriber_id")
+  subscriber   Subscriber   @relation(fields: [subscriberId], references: [id])
+  digestDate   DateTime     @map("digest_date") @db.Date
+  sentAt       DateTime?    @map("sent_at")
+  status       DigestStatus @default(pending)
+
+  @@unique([subscriberId, digestDate])
+  @@map("digest_sends")
+}
