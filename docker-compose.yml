@@ -7,6 +7,12 @@ services:
       POSTGRES_DB: gazete
     volumes:
       - gazete_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gazete -d gazete"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     restart: unless-stopped
 
   migrate:
@@ -17,7 +23,8 @@ services:
     environment:
       DATABASE_URL: postgresql://gazete:${POSTGRES_PASSWORD}@postgres:5432/gazete
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   web:
     build:
@@ -32,7 +39,8 @@ services:
       FROM_EMAIL: ${FROM_EMAIL}
       BASE_URL: ${BASE_URL}
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   worker:
@@ -46,7 +54,8 @@ services:
       FROM_EMAIL: ${FROM_EMAIL}
       BASE_URL: ${BASE_URL}
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:

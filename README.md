@@ -21,7 +21,7 @@ packages/db  — Paylaşılan Prisma şeması ve client
 - **Veritabanı:** PostgreSQL
 - **AI:** Claude API (özetleme, gerektiğinde kategorilendirme)
 - **E-posta gönderimi:** Resend/Brevo (transactional e-posta servisi)
-- **Altyapı:** VPS üzerinde Docker Compose + Caddy (TLS/reverse proxy)
+- **Altyapı:** VPS üzerinde uygulama servisleri için Docker Compose; TLS/reverse proxy ise VPS'te zaten çalışan host nginx + certbot (ayrı bir proxy konteyneri yok)
 
 ## Durum
 

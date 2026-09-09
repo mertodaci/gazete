@@ -1,0 +1,22 @@
+# Secrets — must never be baked into an image layer.
+.env
+.env.*
+!.env.example
+
+# Never needed in the build context.
+node_modules
+**/node_modules
+.git
+.gitignore
+.next
+**/.next
+dist
+build
+**/dist
+**/build
+.worktrees
+.superpowers
+docs
+*.log
+*.tsbuildinfo
+.DS_Store
