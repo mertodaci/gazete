@@ -3,7 +3,7 @@
   --paper: #ffffff;
   --ink: #1b2430;
   --ink-muted: #5b6472;
-  --rule: #c9cfd6;
+  --rule: #d7dbe1;
   --accent: #e8a33d;
   --accent-ink: #4a3311;
 
@@ -33,6 +33,10 @@ body {
 
 a {
   color: inherit;
+}
+
+fieldset {
+  border: none;
 }
 
 :focus-visible {

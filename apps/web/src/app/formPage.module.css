@@ -3,36 +3,44 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 4rem 1.5rem 5rem;
-  gap: 2rem;
+  padding: 4.5rem 1.5rem 5rem;
 }
 
-.eyebrow {
+.badge {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.85rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-display);
-  font-weight: 600;
-  font-style: italic;
-  font-size: 1.375rem;
-  color: var(--ink-muted);
+  font-weight: 900;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .title {
   font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 3.5vw, 1.875rem);
   text-align: center;
-  max-width: 28rem;
+  max-width: 26rem;
+  margin-bottom: 2rem;
 }
 
 .card {
   width: 100%;
-  max-width: 26rem;
+  max-width: 27rem;
   background: var(--paper);
-  border: 2px dashed var(--rule);
-  border-radius: 4px;
-  padding: 2rem 1.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(27, 36, 48, 0.04), 0 8px 24px rgba(27, 36, 48, 0.06);
+  padding: 1.75rem;
 }
 
-.sectionsLegend {
+.chipsLegend {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--ink-muted);
@@ -40,34 +48,48 @@
   display: block;
 }
 
-.sections {
-  list-style: none;
-  margin-bottom: 1.75rem;
-}
-
-.sections li {
-  border-bottom: 1px dashed var(--rule);
-}
-
-.sections li:last-child {
-  border-bottom: none;
-}
-
-.sectionRow {
+.chips {
   display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.6rem 0.1rem;
-  cursor: pointer;
-  font-size: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.sectionRow input[type="checkbox"] {
-  width: 1.05rem;
-  height: 1.05rem;
-  accent-color: var(--accent);
+.chip {
+  position: relative;
+  display: inline-flex;
+}
+
+.chipInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
   cursor: pointer;
-  flex-shrink: 0;
+}
+
+.chipLabel {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.95rem;
+  border: 1.5px solid var(--rule);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--paper);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chipInput:checked + .chipLabel {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+.chipInput:focus-visible + .chipLabel {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .submit {
@@ -78,8 +100,8 @@
   color: var(--accent-ink);
   background: var(--accent);
   border: none;
-  border-radius: 3px;
-  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
   cursor: pointer;
 }
 

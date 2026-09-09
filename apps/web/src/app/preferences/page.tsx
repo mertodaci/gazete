@@ -4,7 +4,7 @@ import { PreferencesForm } from "./PreferencesForm";
 export default function PreferencesPage({ searchParams }: { searchParams: { token?: string } }) {
   return (
     <main className={styles.page}>
-      <p className={styles.eyebrow}>Gazete</p>
+      <div className={styles.badge} aria-hidden="true">G</div>
       {searchParams.token ? (
         <>
           <h1 className={styles.title}>Tercihlerini güncelle</h1>

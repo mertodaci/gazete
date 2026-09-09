@@ -53,17 +53,23 @@ export function PreferencesForm({ token }: { token: string }) {
   return (
     <form className={styles.card} onSubmit={handleSubmit}>
       <fieldset>
-        <legend className={styles.sectionsLegend}>Bölümlerin</legend>
-        <ul className={styles.sections}>
+        <legend className={styles.chipsLegend}>Kategorilerin</legend>
+        <div className={styles.chips}>
           {CATEGORIES.map((c) => (
-            <li key={c.value}>
-              <label className={styles.sectionRow}>
-                <input type="checkbox" checked={selected.includes(c.value)} onChange={() => toggle(c.value)} />
+            <span className={styles.chip} key={c.value}>
+              <input
+                type="checkbox"
+                id={`pref-${c.value}`}
+                className={styles.chipInput}
+                checked={selected.includes(c.value)}
+                onChange={() => toggle(c.value)}
+              />
+              <label htmlFor={`pref-${c.value}`} className={styles.chipLabel}>
                 {c.label}
               </label>
-            </li>
+            </span>
           ))}
-        </ul>
+        </div>
       </fieldset>
       <button type="submit" className={styles.submit} disabled={selected.length === 0}>
         Kaydet

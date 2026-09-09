@@ -43,7 +43,7 @@ export function SubscribeForm() {
   }
 
   return (
-    <form className={styles.coupon} onSubmit={handleSubmit}>
+    <form className={styles.card} onSubmit={handleSubmit}>
       <div className={styles.field}>
         <label htmlFor="email">E-posta</label>
         <input
@@ -57,21 +57,23 @@ export function SubscribeForm() {
       </div>
 
       <fieldset>
-        <legend className={styles.sectionsLegend}>İlgilendiğin bölümler</legend>
-        <ul className={styles.sections}>
+        <legend className={styles.chipsLegend}>İlgilendiğin kategoriler</legend>
+        <div className={styles.chips}>
           {CATEGORIES.map((c) => (
-            <li key={c.value}>
-              <label className={styles.sectionRow}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(c.value)}
-                  onChange={() => toggle(c.value)}
-                />
+            <span className={styles.chip} key={c.value}>
+              <input
+                type="checkbox"
+                id={`cat-${c.value}`}
+                className={styles.chipInput}
+                checked={selected.includes(c.value)}
+                onChange={() => toggle(c.value)}
+              />
+              <label htmlFor={`cat-${c.value}`} className={styles.chipLabel}>
                 {c.label}
               </label>
-            </li>
+            </span>
           ))}
-        </ul>
+        </div>
       </fieldset>
 
       {/* honeypot: hidden from real users, bots tend to fill every field */}
