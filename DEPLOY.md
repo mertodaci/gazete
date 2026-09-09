@@ -31,17 +31,15 @@ DNS propagation can take anywhere from a few minutes to a few hours. Verify with
 5. Issue TLS certificates (this edits `gazete.conf` in place to add the HTTPS server blocks): `sudo certbot --nginx -d turkiyeningazetesi.com -d www.turkiyeningazetesi.com -d turkiyeningazetesi.org -d www.turkiyeningazetesi.org`
 6. Visit `https://turkiyeningazetesi.com` to confirm the app loads, and `https://turkiyeningazetesi.org` to confirm it redirects.
 
-## 4. GitLab CI/CD (automated deploy on push)
+## 4. GitHub Actions (automated deploy on push)
 
-This repo's source of truth stays on GitHub. GitLab is used only for its CI/CD runner, via a pull mirror:
+The pipeline definition is `.github/workflows/deploy.yml` — it runs on every push to `main` and SSHes into the VPS to redeploy. No separate CI provider needed since the repo already lives on GitHub.
 
-1. Create a new GitLab project (empty, no README).
-2. In the GitLab project's **Settings → Repository → Mirroring repositories**, add this repo's GitHub HTTPS URL as a **pull mirror** (GitLab periodically pulls new commits from GitHub — no change needed to how you push to GitHub).
-3. On the VPS, create a dedicated deploy user (or reuse an existing one) and generate an SSH key pair for it: `ssh-keygen -t ed25519 -C "gitlab-deploy" -f ~/.ssh/gitlab_deploy` (no passphrase, since CI runs non-interactively).
-4. Add the **public** key (`~/.ssh/gitlab_deploy.pub`) to that VPS user's `~/.ssh/authorized_keys`.
-5. In the GitLab project's **Settings → CI/CD → Variables**, add three variables, all marked **Protected** and **Masked** (except `VPS_HOST`, which isn't secret):
-   - `VPS_SSH_PRIVATE_KEY` — the contents of the **private** key file (`~/.ssh/gitlab_deploy`)
+1. On the VPS, create a dedicated deploy user (or reuse an existing one) and generate an SSH key pair for it: `ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/github_deploy` (no passphrase, since CI runs non-interactively).
+2. Add the **public** key (`~/.ssh/github_deploy.pub`) to that VPS user's `~/.ssh/authorized_keys`.
+3. In the GitHub repo's **Settings → Secrets and variables → Actions → New repository secret**, add three secrets:
+   - `VPS_SSH_PRIVATE_KEY` — the contents of the **private** key file (`~/.ssh/github_deploy`)
    - `VPS_HOST` — the VPS's IP or `turkiyeningazetesi.com`
    - `VPS_USER` — the deploy user's username
-6. Make sure `/opt/gazete` on the VPS is a clone of this repo with `origin` pointing at GitHub (`git remote -v` to check), so `git pull origin main` in the pipeline has something to pull from.
-7. Push to GitHub's `main` branch; once GitLab's mirror picks up the new commit (mirroring runs on an interval — check **Repository → Mirroring** for "Update now" to trigger it immediately while testing), the pipeline runs automatically and re-deploys.
+4. Make sure `/opt/gazete` on the VPS is a clone of this repo with `origin` pointing at GitHub (`git remote -v` to check), so `git pull origin main` in the workflow has something to pull from.
+5. Push to `main`; the **Actions** tab in the GitHub repo shows the workflow run immediately (no mirror delay), and it redeploys as soon as it completes.
