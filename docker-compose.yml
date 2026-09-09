@@ -31,7 +31,11 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     ports:
-      - "127.0.0.1:3000:3000"
+      # Host port 3010, not 3000 — port 3000 is already taken by another
+      # app on this VPS (Sakin, run via PM2). The container's own internal
+      # port stays 3000 (Next.js's default); only the host-side mapping
+      # differs, so nginx must proxy_pass to 127.0.0.1:3010.
+      - "127.0.0.1:3010:3000"
     environment:
       DATABASE_URL: postgresql://gazete:${POSTGRES_PASSWORD}@postgres:5432/gazete
       RESEND_API_KEY: ${RESEND_API_KEY}
