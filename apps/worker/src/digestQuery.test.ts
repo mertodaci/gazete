@@ -1,12 +1,11 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { prisma } from "@gazete/db";
 import { generateTestToken } from "./testUtils";
+import { istanbulToday } from "./istanbulDate";
 import { getStoriesForSubscriber } from "./digestQuery";
 
-function today(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
+// Mirrors the Istanbul-aware date logic the code under test uses (istanbulDate.ts).
+const today = istanbulToday;
 
 describe("getStoriesForSubscriber", () => {
   beforeEach(async () => {

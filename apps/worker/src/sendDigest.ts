@@ -2,15 +2,11 @@ import { Resend } from "resend";
 import { prisma } from "@gazete/db";
 import { getStoriesForSubscriber } from "./digestQuery";
 import { renderDigestHtml } from "./renderDigest";
+import { istanbulToday } from "./istanbulDate";
 import { config } from "./config";
 
-function today(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
 export async function sendDailyDigest(options: { dryRun?: boolean } = {}): Promise<void> {
-  const digestDate = today();
+  const digestDate = istanbulToday();
   const subscribers = await prisma.subscriber.findMany({ where: { status: "active" } });
   const resend = new Resend(config.resendApiKey);
 
@@ -30,12 +26,26 @@ export async function sendDailyDigest(options: { dryRun?: boolean } = {}): Promi
       continue;
     }
 
+    // Mark the attempt as pending *before* calling the email API, so a crash
+    // mid-send leaves an accurate record rather than nothing at all.
+    await prisma.digestSend.upsert({
+      where: { subscriberId_digestDate: { subscriberId: subscriber.id, digestDate } },
+      create: { subscriberId: subscriber.id, digestDate, status: "pending" },
+      update: { status: "pending" }
+    });
+
+    const unsubscribeUrl = `${config.baseUrl}/unsubscribe?token=${subscriber.preferencesToken}`;
+
     try {
       await resend.emails.send({
         from: config.fromEmail,
         to: subscriber.email,
         subject: "Bugünkü Gazete'n hazır",
-        html
+        html,
+        headers: {
+          "List-Unsubscribe": `<${unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"
+        }
       });
       await prisma.digestSend.upsert({
         where: { subscriberId_digestDate: { subscriberId: subscriber.id, digestDate } },

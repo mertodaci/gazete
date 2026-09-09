@@ -1,6 +1,14 @@
+// Normalize the dotted/dotless I pair explicitly before lowercasing. Engines
+// disagree on whether a plain "I" lowercases to "ı" under the tr-TR locale, so
+// an ALL-CAPS headline could otherwise fail to token-match its mixed-case
+// equivalent. Doing the mapping by hand makes it deterministic.
+function normalizeTurkishI(text: string): string {
+  return text.replace(/İ/g, "i").replace(/I/g, "ı");
+}
+
 function tokenize(title: string): Set<string> {
   return new Set(
-    title
+    normalizeTurkishI(title)
       .toLocaleLowerCase("tr-TR")
       .replace(/[^\p{L}\p{N}\s]/gu, "")
       .split(/\s+/)

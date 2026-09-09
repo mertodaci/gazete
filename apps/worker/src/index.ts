@@ -31,5 +31,12 @@ if (isDryRun) {
     sendDailyDigest().catch((err) => console.error("Digest send error:", err));
   }, { timezone: config.timezone });
 
+  // Retry pass for anyone whose 08:45 send failed (or crashed mid-send).
+  // sendDailyDigest already skips subscribers whose DigestSend is "sent", so
+  // re-running it only picks up "failed"/"pending" rows and anyone missed.
+  cron.schedule("0 9 * * *", () => {
+    sendDailyDigest().catch((err) => console.error("Digest retry error:", err));
+  }, { timezone: config.timezone });
+
   console.log(`Gazete worker started. Timezone: ${config.timezone}`);
 }

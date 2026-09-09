@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { prisma } from "@gazete/db";
 import { generateTestToken } from "./testUtils";
+import { istanbulToday } from "./istanbulDate";
 
 const sendMock = vi.fn().mockResolvedValue({ data: { id: "x" }, error: null });
 vi.mock("resend", () => ({
@@ -9,10 +10,8 @@ vi.mock("resend", () => ({
 
 import { sendDailyDigest } from "./sendDigest";
 
-function today(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
+// Mirrors the Istanbul-aware date logic the code under test uses (istanbulDate.ts).
+const today = istanbulToday;
 
 async function makeStoryForToday(category: "gundem" | "spor" = "gundem") {
   const source = await prisma.source.create({
