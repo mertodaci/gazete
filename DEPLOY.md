@@ -16,7 +16,9 @@ DNS propagation can take anywhere from a few minutes to a few hours. Verify with
 1. Install Docker + the Docker Compose plugin on the VPS.
 2. Clone this repo onto the VPS (e.g. into `/opt/gazete`).
 3. Create a `.env` file there (not committed) with: `POSTGRES_PASSWORD`, `RESEND_API_KEY`,
-   `RESEND_WEBHOOK_SECRET`, `FROM_EMAIL=info@turkiyeningazetesi.com`, `ANTHROPIC_API_KEY`, `BASE_URL=https://turkiyeningazetesi.com`.
+   `RESEND_WEBHOOK_SECRET`, `FROM_EMAIL="Türkiye'nin Gazetesi <info@turkiyeningazetesi.com>"` (the display
+   name matters — a bare address makes email clients show the raw local-part, e.g. "info", as the sender name),
+   `ANTHROPIC_API_KEY`, `BASE_URL=https://turkiyeningazetesi.com`.
    `RESEND_API_KEY` requires verifying `turkiyeningazetesi.com` as a sending domain in the Resend dashboard first (it will ask you to add its own DNS TXT/CNAME records, separate from the A records above).
 4. Seed the RSS sources once: `docker compose run --rm migrate sh -c "cd packages/db && npx prisma db seed"` (Prisma reads its `prisma.seed` config from the package.json in the *current* directory, and only `packages/db/package.json` has one — so the `cd` is required)
 5. Start the app stack: `docker compose up -d --build` — this does **not** touch ports 80/443; `web` only binds to `127.0.0.1:3010` (not 3000 — check `ss -tulpn` on your VPS for a free port first if other apps already run there, and update both `docker-compose.yml`'s port mapping and `deploy/nginx/gazete.conf`'s `proxy_pass` together if you pick a different one).

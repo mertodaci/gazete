@@ -17,7 +17,7 @@ export function SubscribeForm() {
   const [email, setEmail] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [honeypot, setHoneypot] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error" | "rate_limited">("idle");
 
   function toggle(value: string) {
     setSelected((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
@@ -31,7 +31,13 @@ export function SubscribeForm() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, categories: selected, honeypot })
     });
-    setStatus(res.ok ? "done" : "error");
+    if (res.ok) {
+      setStatus("done");
+    } else if (res.status === 429) {
+      setStatus("rate_limited");
+    } else {
+      setStatus("error");
+    }
   }
 
   if (status === "done") {
@@ -92,6 +98,9 @@ export function SubscribeForm() {
         Abone Ol
       </button>
       {status === "error" && <p className={styles.error} role="alert">Bir şeyler ters gitti, tekrar dener misin?</p>}
+      {status === "rate_limited" && (
+        <p className={styles.error} role="alert">Çok hızlı denedin, birkaç saniye bekleyip tekrar dener misin?</p>
+      )}
     </form>
   );
 }
