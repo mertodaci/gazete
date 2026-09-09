@@ -12,10 +12,41 @@
   fill: var(--accent);
 }
 
+.mark path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: logoIn 0.4s ease-out both;
+}
+
+.mark path:last-child {
+  animation-delay: 0.12s;
+}
+
 .word {
   font-family: var(--font-display);
   font-weight: 600;
   font-style: italic;
   font-size: 1em;
   color: var(--ink);
+  display: inline-block;
+  animation: logoIn 0.45s ease-out both;
+  animation-delay: 0.16s;
+}
+
+@keyframes logoIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark path,
+  .word {
+    animation: none;
+  }
 }
