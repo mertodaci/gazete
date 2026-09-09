@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styles from "./HomeShell.module.css";
+import { IntroSplash } from "./IntroSplash";
 import { Logo } from "./Logo";
 import { SubscribeForm } from "./SubscribeForm";
 import { NewsFeed } from "./NewsFeed";
@@ -43,6 +44,7 @@ export function HomeShell({ stories }: { stories: PublicStory[] }) {
 
   return (
     <>
+      <IntroSplash />
       <header className={styles.header}>
         <Logo />
         <button type="button" className={styles.headerCta} onClick={() => setShowModal(true)}>

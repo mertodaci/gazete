@@ -1,0 +1,51 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  animation: fadeOut 0.25s ease-in forwards;
+  animation-delay: 0.75s;
+}
+
+.mark {
+  width: 4.5rem;
+  height: 3rem;
+  fill: var(--accent);
+}
+
+.mark path {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: markIn 0.45s ease-out forwards;
+}
+
+.second {
+  animation-delay: 0.15s;
+}
+
+@keyframes markIn {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash {
+    display: none;
+  }
+}
