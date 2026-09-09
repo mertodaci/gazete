@@ -1,0 +1,68 @@
+.feed {
+  width: 100%;
+  max-width: 42rem;
+  margin-top: 4rem;
+}
+
+.feedTitle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.group {
+  margin-bottom: 2.25rem;
+}
+
+.groupTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent);
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  margin-bottom: 0.9rem;
+}
+
+.story {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.85rem;
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.summary {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.sources {
+  margin-top: 0.7rem;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.sources a {
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sources a:hover {
+  color: var(--ink);
+}
+
+.empty {
+  text-align: center;
+  font-size: 1rem;
+  color: var(--ink-muted);
+  background: var(--paper);
+  border: 1px dashed var(--rule);
+  border-radius: 0.85rem;
+  padding: 2rem 1.5rem;
+}

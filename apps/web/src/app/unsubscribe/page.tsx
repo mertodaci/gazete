@@ -8,7 +8,7 @@ import { UnsubscribeForm } from "./UnsubscribeForm";
 export default function UnsubscribePage({ searchParams }: { searchParams: { token?: string } }) {
   return (
     <main className={styles.page}>
-      <div className={styles.badge} aria-hidden="true">G</div>
+      <p className={styles.wordmark}>Türkiye&apos;nin Gazetesi</p>
       {searchParams.token ? (
         <>
           <h1 className={styles.title}>Abonelikten çık</h1>
