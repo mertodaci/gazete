@@ -1,16 +1,15 @@
-async function unsubscribe(token: string) {
-  const base = process.env.BASE_URL ?? "http://localhost:3000";
-  const res = await fetch(`${base}/api/unsubscribe`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ token }),
-    cache: "no-store"
-  });
-  return res.ok;
-}
+import { UnsubscribeForm } from "./UnsubscribeForm";
 
-export default async function UnsubscribePage({ searchParams }: { searchParams: { token?: string } }) {
+// A plain GET must never unsubscribe: corporate mail scanners and antivirus
+// gateways prefetch every link in an email, which would silently unsubscribe
+// real users. RFC 8058 one-click unsubscribe requires a POST, so this page only
+// renders a confirmation button that POSTs to /api/unsubscribe.
+export default function UnsubscribePage({ searchParams }: { searchParams: { token?: string } }) {
   if (!searchParams.token) return <p>Eksik bağlantı.</p>;
-  const ok = await unsubscribe(searchParams.token);
-  return <main>{ok ? <p>Abonelikten çıkıldı. İyi günler dileriz.</p> : <p>Bu bağlantı geçersiz.</p>}</main>;
+  return (
+    <main>
+      <h1>Abonelikten Çık</h1>
+      <UnsubscribeForm token={searchParams.token} />
+    </main>
+  );
 }

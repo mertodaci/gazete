@@ -15,6 +15,7 @@ const CATEGORIES: { value: string; label: string }[] = [
 export function SubscribeForm() {
   const [email, setEmail] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [honeypot, setHoneypot] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   function toggle(value: string) {
@@ -27,7 +28,7 @@ export function SubscribeForm() {
     const res = await fetch("/api/subscribe", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, categories: selected, honeypot: "" })
+      body: JSON.stringify({ email, categories: selected, honeypot })
     });
     setStatus(res.ok ? "done" : "error");
   }
@@ -62,7 +63,15 @@ export function SubscribeForm() {
       </fieldset>
 
       {/* honeypot: hidden from real users, bots tend to fill every field */}
-      <input type="text" name="company" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+      <input
+        type="text"
+        name="company"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        style={{ display: "none" }}
+        tabIndex={-1}
+        autoComplete="off"
+      />
 
       <button type="submit" disabled={status === "loading" || selected.length === 0}>
         Abone Ol

@@ -6,8 +6,31 @@ import { sendWelcomeEmail } from "@/lib/email";
 const VALID_CATEGORIES = Object.values(Category);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Resolves the client IP for rate-limiting purposes.
+ *
+ * nginx sets `X-Real-IP` with `$remote_addr`, which *overwrites* whatever the
+ * client sent, so it cannot be spoofed. `X-Forwarded-For` uses
+ * `$proxy_add_x_forwarded_for`, which *appends* to the client-supplied value —
+ * trusting it verbatim would let a client mint a fresh rate-limit key on every
+ * request. So only fall back to it (taking the last, proxy-appended segment)
+ * when `X-Real-IP` is absent, i.e. local dev with no nginx in front.
+ */
+function clientIp(request: Request): string {
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const segments = forwardedFor.split(",");
+    return segments[segments.length - 1].trim();
+  }
+
+  return "unknown";
+}
+
 export async function POST(request: Request): Promise<Response> {
-  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const ip = clientIp(request);
   const body = await request.json();
   const { email, categories, honeypot } = body as {
     email?: string;
@@ -39,6 +62,9 @@ export async function POST(request: Request): Promise<Response> {
     await prisma.subscriberCategory.createMany({
       data: categories.map((category) => ({ subscriberId: existing.id, category: category as Category }))
     });
+    // Re-subscribing must reactivate someone who previously unsubscribed (or
+    // was unsubscribed by a hard bounce) — otherwise they could never come back.
+    await prisma.subscriber.update({ where: { id: existing.id }, data: { status: "active" } });
     return Response.json({ ok: true }, { status: 201 });
   }
 

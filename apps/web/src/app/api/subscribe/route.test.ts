@@ -46,6 +46,27 @@ describe("POST /api/subscribe", () => {
     expect(sendWelcomeEmail).not.toHaveBeenCalled();
   });
 
+  it("reactivates a previously unsubscribed address when they subscribe again", async () => {
+    await prisma.subscriber.create({
+      data: {
+        email: "returning@example.com",
+        preferencesToken: "reactivate-test-token",
+        status: "unsubscribed",
+        categories: { create: [{ category: "gundem" }] }
+      }
+    });
+
+    const res = await POST(makeRequest({ email: "returning@example.com", categories: ["spor"] }, "9.9.9.9"));
+    expect(res.status).toBe(201);
+
+    const sub = await prisma.subscriber.findUnique({
+      where: { email: "returning@example.com" },
+      include: { categories: true }
+    });
+    expect(sub?.status).toBe("active");
+    expect(sub?.categories.map((c) => c.category)).toEqual(["spor"]);
+  });
+
   it("rejects an invalid email with 400", async () => {
     const res = await POST(makeRequest({ email: "not-an-email", categories: ["gundem"] }, "5.5.5.5"));
     expect(res.status).toBe(400);
