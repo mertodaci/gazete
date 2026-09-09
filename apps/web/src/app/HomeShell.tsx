@@ -48,7 +48,7 @@ export function HomeShell({ stories }: { stories: PublicStory[] }) {
       <header className={styles.header}>
         <Logo />
         <button type="button" className={styles.headerCta} onClick={() => setShowModal(true)}>
-          Abone Ol
+          Ücretsiz Abone Ol
         </button>
       </header>
 
