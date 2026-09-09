@@ -1,0 +1,21 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 1.15rem;
+}
+
+.mark {
+  width: 1.2em;
+  height: 0.8em;
+  flex-shrink: 0;
+  fill: var(--accent);
+}
+
+.word {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: italic;
+  font-size: 1em;
+  color: var(--ink);
+}

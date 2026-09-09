@@ -40,7 +40,9 @@ describe("renderDigestHtml", () => {
     expect(html).toContain("&quot;");
     // The href attribute must be a single well-formed quoted value ending right
     // before the tag closes — nothing escaped out into attribute position.
-    expect(html).toContain('<a href="https://example.com/a&quot; onmouseover=&quot;alert(1)">Kötü Kaynak</a>');
+    expect(html).toContain(
+      '<a href="https://example.com/a&quot; onmouseover=&quot;alert(1)" style="color:#5b6472;">Kötü Kaynak</a>'
+    );
   });
 
   it("renders a non-http(s) source URL as plain text instead of a link", () => {

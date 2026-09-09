@@ -7,11 +7,6 @@
 }
 
 .wordmark {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-style: italic;
-  font-size: 1.375rem;
-  color: var(--ink);
   margin-bottom: 1.75rem;
 }
 

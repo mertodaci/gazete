@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styles from "./HomeShell.module.css";
+import { Logo } from "./Logo";
 import { SubscribeForm } from "./SubscribeForm";
 import { NewsFeed } from "./NewsFeed";
 import type { PublicStory } from "../lib/publicStories";
@@ -43,7 +44,7 @@ export function HomeShell({ stories }: { stories: PublicStory[] }) {
   return (
     <>
       <header className={styles.header}>
-        <span className={styles.wordmark}>Türkiye&apos;nin Gazetesi</span>
+        <Logo />
         <button type="button" className={styles.headerCta} onClick={() => setShowModal(true)}>
           Abone Ol
         </button>
@@ -59,12 +60,11 @@ export function HomeShell({ stories }: { stories: PublicStory[] }) {
             <button type="button" className={styles.close} onClick={close} aria-label="Kapat">
               ×
             </button>
+            <span className={styles.freeBadge}>Tamamen ücretsiz</span>
             <h1 className={styles.headline}>
               Seçtiğin kategorilerden, yapay zekâ ile özetlenmiş günlük haber bülteni.
             </h1>
-            <p className={styles.subtext}>
-              Gazete&apos;ye ücretsiz abone ol, her sabah 09.00&apos;da kutunda olsun.
-            </p>
+            <p className={styles.subtext}>Her sabah 09.00&apos;da kutunda olsun.</p>
             <SubscribeForm />
           </div>
         </div>

@@ -10,14 +10,6 @@
   border-bottom: 1px solid var(--rule);
 }
 
-.wordmark {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-style: italic;
-  font-size: 1.15rem;
-  color: var(--ink);
-}
-
 .headerCta {
   font-family: var(--font-body);
   font-weight: 600;
@@ -85,6 +77,19 @@
 .close:hover {
   background: var(--bg);
   color: var(--ink);
+}
+
+.freeBadge {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
 .headline {

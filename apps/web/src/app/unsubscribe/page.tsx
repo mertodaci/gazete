@@ -1,4 +1,5 @@
 import styles from "../formPage.module.css";
+import { Logo } from "../Logo";
 import { UnsubscribeForm } from "./UnsubscribeForm";
 
 // A plain GET must never unsubscribe: corporate mail scanners and antivirus
@@ -8,7 +9,9 @@ import { UnsubscribeForm } from "./UnsubscribeForm";
 export default function UnsubscribePage({ searchParams }: { searchParams: { token?: string } }) {
   return (
     <main className={styles.page}>
-      <p className={styles.wordmark}>Türkiye&apos;nin Gazetesi</p>
+      <div className={styles.wordmark}>
+        <Logo fontSize="1.375rem" />
+      </div>
       {searchParams.token ? (
         <>
           <h1 className={styles.title}>Abonelikten çık</h1>
