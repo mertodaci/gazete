@@ -1,0 +1,131 @@
+.coupon {
+  position: relative;
+  width: 100%;
+  max-width: 26rem;
+  background: var(--paper);
+  border: 2px dashed var(--rule);
+  border-radius: 4px;
+  padding: 2rem 1.75rem 1.75rem;
+}
+
+.coupon::before {
+  content: "✂";
+  position: absolute;
+  top: -0.8rem;
+  left: 1.5rem;
+  background: var(--bg);
+  padding: 0 0.4rem;
+  font-size: 1.05rem;
+  color: var(--ink-muted);
+  transform: rotate(90deg);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.field input[type="email"] {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  color: var(--ink);
+  border: none;
+  border-bottom: 2px solid var(--ink);
+  background: transparent;
+  padding: 0.35rem 0.1rem;
+}
+
+.field input[type="email"]::placeholder {
+  color: var(--rule);
+}
+
+.sectionsLegend {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
+.sections {
+  list-style: none;
+  margin-bottom: 1.75rem;
+}
+
+.sections li {
+  border-bottom: 1px dashed var(--rule);
+}
+
+.sections li:last-child {
+  border-bottom: none;
+}
+
+.sectionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.1rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.sectionRow input[type="checkbox"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.submit {
+  width: 100%;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: none;
+  border-radius: 3px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  background: var(--rule);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+.error {
+  margin-top: 0.9rem;
+  font-size: 0.9375rem;
+  color: #9a3b1f;
+}
+
+.confirmation {
+  max-width: 26rem;
+  text-align: center;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px dashed var(--rule);
+  border-radius: 4px;
+  padding: 2rem 1.75rem;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import styles from "../formPage.module.css";
 
 export function UnsubscribeForm({ token }: { token: string }) {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "invalid" | "error">("idle");
@@ -22,16 +23,22 @@ export function UnsubscribeForm({ token }: { token: string }) {
     }
   }
 
-  if (status === "done") return <p>Abonelikten çıkıldı. İyi günler dileriz.</p>;
-  if (status === "invalid") return <p>Bu bağlantı geçersiz.</p>;
+  if (status === "done") return <p className={styles.message}>Abonelikten çıkıldı. İyi günler dileriz.</p>;
+  if (status === "invalid") return <p className={styles.message}>Bu bağlantı geçersiz.</p>;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <p>Abonelikten çıkmak istediğine emin misin?</p>
-      <button type="submit" disabled={status === "loading"}>
+    <form className={styles.card} onSubmit={handleSubmit}>
+      <p className={styles.message} style={{ marginBottom: "1.25rem" }}>
+        Abonelikten çıkmak istediğine emin misin?
+      </p>
+      <button type="submit" className={styles.submit} disabled={status === "loading"}>
         Abonelikten çık
       </button>
-      {status === "error" && <p role="alert">Bir şeyler ters gitti, tekrar dener misin?</p>}
+      {status === "error" && (
+        <p className={styles.saved} role="alert">
+          Bir şeyler ters gitti, tekrar dener misin?
+        </p>
+      )}
     </form>
   );
 }

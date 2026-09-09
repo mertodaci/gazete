@@ -1,3 +1,4 @@
+import styles from "../formPage.module.css";
 import { UnsubscribeForm } from "./UnsubscribeForm";
 
 // A plain GET must never unsubscribe: corporate mail scanners and antivirus
@@ -5,11 +6,17 @@ import { UnsubscribeForm } from "./UnsubscribeForm";
 // real users. RFC 8058 one-click unsubscribe requires a POST, so this page only
 // renders a confirmation button that POSTs to /api/unsubscribe.
 export default function UnsubscribePage({ searchParams }: { searchParams: { token?: string } }) {
-  if (!searchParams.token) return <p>Eksik bağlantı.</p>;
   return (
-    <main>
-      <h1>Abonelikten Çık</h1>
-      <UnsubscribeForm token={searchParams.token} />
+    <main className={styles.page}>
+      <p className={styles.eyebrow}>Gazete</p>
+      {searchParams.token ? (
+        <>
+          <h1 className={styles.title}>Abonelikten çık</h1>
+          <UnsubscribeForm token={searchParams.token} />
+        </>
+      ) : (
+        <p className={styles.message}>Eksik bağlantı.</p>
+      )}
     </main>
   );
 }

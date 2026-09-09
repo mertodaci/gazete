@@ -1,11 +1,18 @@
+import styles from "../formPage.module.css";
 import { PreferencesForm } from "./PreferencesForm";
 
 export default function PreferencesPage({ searchParams }: { searchParams: { token?: string } }) {
-  if (!searchParams.token) return <p>Eksik bağlantı.</p>;
   return (
-    <main>
-      <h1>Tercihlerini Güncelle</h1>
-      <PreferencesForm token={searchParams.token} />
+    <main className={styles.page}>
+      <p className={styles.eyebrow}>Gazete</p>
+      {searchParams.token ? (
+        <>
+          <h1 className={styles.title}>Tercihlerini güncelle</h1>
+          <PreferencesForm token={searchParams.token} />
+        </>
+      ) : (
+        <p className={styles.message}>Eksik bağlantı.</p>
+      )}
     </main>
   );
 }
