@@ -91,7 +91,7 @@ function renderSponsorSlot(): string {
       <tr>
         <td style="padding:14px 24px;font-family:'Helvetica Neue',Arial,sans-serif;text-align:center;">
           <p style="margin:0 0 4px;font-size:10px;font-weight:600;letter-spacing:0.06em;color:#9aa4b2;">İLE BİRLİKTE</p>
-          <p style="margin:0;font-size:13px;color:#5b6472;">Bu alana reklam verebilirsiniz — <a href="mailto:reklam@turkiyeningazetesi.com" style="color:#4a3311;font-weight:600;">bize ulaşın</a></p>
+          <p style="margin:0;font-size:13px;color:#5b6472;">Bu alana reklam verebilirsiniz — <a href="mailto:info@turkiyeningazetesi.com" style="color:#4a3311;font-weight:600;">bize ulaşın</a></p>
         </td>
       </tr>
     </table>
