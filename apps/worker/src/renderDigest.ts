@@ -1,4 +1,5 @@
 import type { StoryWithSources } from "./digestQuery";
+import type { MarketSnapshot } from "./marketData";
 
 export function escapeHtml(text: string): string {
   return text
@@ -65,6 +66,20 @@ const TURKISH_DATE_FORMAT = new Intl.DateTimeFormat("tr-TR", {
 
 function formatGreetingDate(digestDate: Date): string {
   return TURKISH_DATE_FORMAT.format(digestDate);
+}
+
+const MARKET_NUMBER_FORMAT = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// A static snapshot at send time — unlike the site's scrolling ticker, email
+// clients can't reliably run CSS animations, so this is just one line.
+function renderMarketRow(snapshot: MarketSnapshot | null): string {
+  if (!snapshot) return "";
+  const text = [
+    `BIST 100 ${MARKET_NUMBER_FORMAT.format(snapshot.bist100)}`,
+    `Gram Altın ${MARKET_NUMBER_FORMAT.format(snapshot.goldGramTl)} ₺`,
+    `Gümüş ${MARKET_NUMBER_FORMAT.format(snapshot.silverGramTl)} ₺`
+  ].join("  &middot;  ");
+  return `<p style="margin:8px 0 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#5b6472;">${text}</p>`;
 }
 
 // A blank spacer row between stacked card tables — the email-safe way to add
@@ -154,7 +169,8 @@ export function renderDigestHtml(
   stories: StoryWithSources[],
   preferencesToken: string,
   baseUrl: string,
-  digestDate: Date = new Date()
+  digestDate: Date = new Date(),
+  marketSnapshot: MarketSnapshot | null = null
 ): string {
   const breakingStories = stories.filter((s) => s.isBreaking);
 
@@ -218,6 +234,7 @@ export function renderDigestHtml(
                     <p style="margin:0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#5b6472;">${escapeHtml(
                       formatGreetingDate(digestDate)
                     )} sabahından herkese günaydın.</p>
+                    ${renderMarketRow(marketSnapshot)}
                   </td>
                 </tr>
               </table>

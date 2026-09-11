@@ -1,0 +1,42 @@
+.ticker {
+  width: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  padding: 0.5rem 0;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  animation: scroll 28s linear infinite;
+}
+
+.item {
+  flex-shrink: 0;
+  padding-right: 3rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #eef1f5;
+  white-space: nowrap;
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    animation: none;
+  }
+
+  .item:last-child {
+    display: none;
+  }
+}

@@ -6,11 +6,19 @@ import { IntroSplash } from "./IntroSplash";
 import { Logo } from "./Logo";
 import { SubscribeForm } from "./SubscribeForm";
 import { NewsFeed } from "./NewsFeed";
+import { MarketTicker } from "./MarketTicker";
 import type { PublicStory } from "../lib/publicStories";
+import type { MarketSnapshot } from "../lib/marketData";
 
 const DISMISSED_KEY = "gazete-subscribe-dismissed";
 
-export function HomeShell({ stories }: { stories: PublicStory[] }) {
+export function HomeShell({
+  stories,
+  marketSnapshot
+}: {
+  stories: PublicStory[];
+  marketSnapshot: MarketSnapshot | null;
+}) {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -51,6 +59,8 @@ export function HomeShell({ stories }: { stories: PublicStory[] }) {
           Ücretsiz Abone Ol
         </button>
       </header>
+
+      <MarketTicker snapshot={marketSnapshot} />
 
       <main className={styles.page}>
         <NewsFeed stories={stories} />

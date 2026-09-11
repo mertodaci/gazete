@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { prisma } from "@gazete/db";
 import { getStoriesForSubscriber } from "./digestQuery";
 import { renderDigestHtml } from "./renderDigest";
+import { getMarketSnapshot } from "./marketData";
 import { istanbulToday } from "./istanbulDate";
 import { config } from "./config";
 
@@ -9,6 +10,10 @@ export async function sendDailyDigest(options: { dryRun?: boolean } = {}): Promi
   const digestDate = istanbulToday();
   const subscribers = await prisma.subscriber.findMany({ where: { status: "active" } });
   const resend = new Resend(config.resendApiKey);
+  // Fetched once per send, not per subscriber — the same snapshot for
+  // everyone, and a failure here (returns null) just omits the ticker rather
+  // than blocking the digest.
+  const marketSnapshot = await getMarketSnapshot();
 
   for (const subscriber of subscribers) {
     const existing = await prisma.digestSend.findUnique({
@@ -19,7 +24,7 @@ export async function sendDailyDigest(options: { dryRun?: boolean } = {}): Promi
     const stories = await getStoriesForSubscriber(subscriber.id, digestDate);
     if (stories.length === 0) continue;
 
-    const html = renderDigestHtml(stories, subscriber.preferencesToken, config.baseUrl, digestDate);
+    const html = renderDigestHtml(stories, subscriber.preferencesToken, config.baseUrl, digestDate, marketSnapshot);
 
     if (options.dryRun) {
       console.log(`[dry-run] would send to ${subscriber.email}: ${stories.length} stories`);
