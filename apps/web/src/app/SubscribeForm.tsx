@@ -73,17 +73,13 @@ export function SubscribeForm() {
         </div>
       </fieldset>
 
-      {/* honeypot: hidden from real users, bots tend to fill every field */}
-      <input
-        type="text"
-        name="company"
-        value={honeypot}
-        onChange={(e) => setHoneypot(e.target.value)}
-        className={styles.honeypot}
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-      />
+      {/* honeypot: a genuinely hidden input (type="hidden") that no browser
+          autofill or password manager will ever populate, unlike a
+          CSS-hidden visible input — which real users' autofill was tripping,
+          silently swallowing their subscription with a fake success. Only a
+          script that blindly fills every <input> regardless of type reaches it. */}
+      <input type="hidden" name="company" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+
 
       <button type="submit" className={styles.submit} disabled={status === "loading" || selected.length === 0}>
         Abone Ol
