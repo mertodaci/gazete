@@ -22,12 +22,40 @@
   cursor: pointer;
 }
 
-.page {
+.layout {
   min-height: 100vh;
+  width: 100%;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2.5rem;
   padding: 2.5rem 1.5rem 5rem;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  max-width: 64rem;
+}
+
+.sidebar {
+  width: 17rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 5.5rem;
+}
+
+@media (max-width: 64rem) {
+  .layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-width: 64rem;
+    position: static;
+  }
 }
 
 .overlay {
