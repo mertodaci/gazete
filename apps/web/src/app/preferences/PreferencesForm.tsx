@@ -9,6 +9,9 @@ export function PreferencesForm({ token }: { token: string }) {
   const [notFound, setNotFound] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(false);
+
+  const SELECTABLE_VALUES = SUBSCRIBER_CATEGORY_OPTIONS.map((c) => c.value as string);
 
   useEffect(() => {
     fetch(`/api/preferences?token=${token}`)
@@ -18,14 +21,22 @@ export function PreferencesForm({ token }: { token: string }) {
           return;
         }
         const json = await res.json();
-        setSelected(json.categories);
+        // A subscriber may still have a legacy category (e.g. "gundem", removed
+        // from the selectable list) saved from before it was retired — it has
+        // no checkbox to show, but leaving it in `selected` would make every
+        // save fail server-side validation. Drop anything that can't be shown.
+        setSelected(
+          (json.categories as string[]).filter((c) => SELECTABLE_VALUES.includes(c))
+        );
       })
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   function toggle(value: string) {
     setSelected((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
     setSaved(false);
+    setError(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -36,6 +47,7 @@ export function PreferencesForm({ token }: { token: string }) {
       body: JSON.stringify({ token, categories: selected })
     });
     setSaved(res.ok);
+    setError(!res.ok);
   }
 
   if (loading) return <p className={styles.message}>Yükleniyor…</p>;
@@ -66,6 +78,7 @@ export function PreferencesForm({ token }: { token: string }) {
         Kaydet
       </button>
       {saved && <p className={styles.saved}>Kaydedildi.</p>}
+      {error && <p className={styles.error}>Bir şeyler ters gitti, tekrar dener misin?</p>}
     </form>
   );
 }

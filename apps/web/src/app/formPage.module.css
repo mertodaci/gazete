@@ -112,3 +112,9 @@
   font-size: 0.9375rem;
   color: var(--ink-muted);
 }
+
+.error {
+  margin-top: 0.9rem;
+  font-size: 0.9375rem;
+  color: #c0392b;
+}
