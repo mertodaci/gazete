@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { renderDigestHtml } from "./renderDigest";
 import type { StoryWithSources } from "./digestQuery";
+import type { MarketSnapshot } from "./marketData";
+
+const sampleSnapshot: MarketSnapshot = {
+  bist100: { price: 14467.25, changePercent: 0.51 },
+  gold: { price: 6824.86, changePercent: 1.31 },
+  silver: { price: 100.77, changePercent: 1.54 },
+  stocks: [{ symbol: "THYAO", price: 300.25, changePercent: 0.33 }]
+};
 
 describe("renderDigestHtml", () => {
   const stories: StoryWithSources[] = [
@@ -136,5 +144,60 @@ describe("renderDigestHtml", () => {
     expect(html).not.toContain("<img src=x onerror=alert(1)>");
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
+
+  it("shows the closing-values table in the Ekonomi card for a subscriber who selected it", () => {
+    const html = renderDigestHtml(
+      stories,
+      "tok123",
+      "https://gazete.example.com",
+      new Date(),
+      sampleSnapshot,
+      true
+    );
+    expect(html).toContain("SON KAPANIŞ");
+    expect(html).toContain("BIST 100");
+    expect(html).toContain("THYAO");
+    expect(html).toContain("14.467,25");
+  });
+
+  it("still shows the Ekonomi card with just the table when the subscriber has no Ekonomi stories that day", () => {
+    const sportOnly: StoryWithSources[] = [
+      {
+        id: "s1",
+        category: "spor",
+        canonicalTitle: "Maç Sonucu",
+        aiSummaryTr: "Özet.",
+        isBreaking: false,
+        sources: []
+      }
+    ];
+    const html = renderDigestHtml(
+      sportOnly,
+      "tok123",
+      "https://gazete.example.com",
+      new Date(),
+      sampleSnapshot,
+      true
+    );
+    expect(html).toContain("Ekonomi");
+    expect(html).toContain("SON KAPANIŞ");
+  });
+
+  it("does not show the closing-values table for a subscriber who did not select Ekonomi", () => {
+    const html = renderDigestHtml(
+      stories,
+      "tok123",
+      "https://gazete.example.com",
+      new Date(),
+      sampleSnapshot,
+      false
+    );
+    expect(html).not.toContain("SON KAPANIŞ");
+  });
+
+  it("does not show the closing-values table when the market snapshot is unavailable", () => {
+    const html = renderDigestHtml(stories, "tok123", "https://gazete.example.com", new Date(), null, true);
+    expect(html).not.toContain("SON KAPANIŞ");
   });
 });

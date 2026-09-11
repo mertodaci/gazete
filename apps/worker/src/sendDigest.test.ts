@@ -8,6 +8,17 @@ vi.mock("resend", () => ({
   Resend: vi.fn().mockImplementation(() => ({ emails: { send: sendMock } }))
 }));
 
+// Avoids depending on live Yahoo Finance / truncgil network calls in tests —
+// deterministic and fast, and no test here asserts on the snapshot's content.
+vi.mock("./marketData", () => ({
+  getMarketSnapshot: vi.fn().mockResolvedValue({
+    bist100: { price: 14467.25, changePercent: 0.51 },
+    gold: { price: 6824.86, changePercent: 1.31 },
+    silver: { price: 100.77, changePercent: 1.54 },
+    stocks: []
+  })
+}));
+
 import { sendDailyDigest } from "./sendDigest";
 
 // Mirrors the Istanbul-aware date logic the code under test uses (istanbulDate.ts).
@@ -129,5 +140,25 @@ describe("sendDailyDigest", () => {
     expect(sendMock).not.toHaveBeenCalled();
     const records = await prisma.digestSend.findMany({});
     expect(records).toHaveLength(0);
+  });
+
+  it("still sends the closing-values table to an Ekonomi subscriber with no matching stories that day", async () => {
+    const sub = await prisma.subscriber.create({
+      data: { email: "ekonomi@example.com", preferencesToken: generateTestToken(), categories: { create: [{ category: "ekonomi" }] } }
+    });
+    // Only a "spor" story exists today — this subscriber has no Ekonomi
+    // stories, but should still get the market table.
+    await makeStoryForToday("spor");
+
+    await sendDailyDigest();
+
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sendMock.mock.calls[0][0].to).toBe("ekonomi@example.com");
+    expect(sendMock.mock.calls[0][0].html).toContain("SON KAPANIŞ");
+
+    const record = await prisma.digestSend.findUnique({
+      where: { subscriberId_digestDate: { subscriberId: sub.id, digestDate: today() } }
+    });
+    expect(record?.status).toBe("sent");
   });
 });

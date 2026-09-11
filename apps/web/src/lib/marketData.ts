@@ -1,53 +1,112 @@
-export interface MarketSnapshot {
-  bist100: number;
-  goldGramTl: number;
-  silverGramTl: number;
+export interface Quote {
+  price: number;
+  changePercent: number;
 }
 
-// Two free, unauthenticated public endpoints — neither is an officially
-// supported API, so any failure (network, shape change, downtime) must
-// degrade to "don't show the ticker" rather than break the page. `revalidate`
-// caches the result for 5 minutes so a page view never blocks on a live
-// external call, and we don't hammer either service on every request.
-async function fetchBist100(): Promise<number | null> {
+export interface StockQuote extends Quote {
+  symbol: string;
+}
+
+export interface MarketSnapshot {
+  bist100: Quote;
+  gold: Quote;
+  silver: Quote;
+  stocks: StockQuote[];
+}
+
+// 20 liquid BIST100 constituents — a fixed, hand-picked list rather than a
+// dynamic "top movers" query, since there's no free unauthenticated endpoint
+// that ranks the whole index for us.
+const STOCK_SYMBOLS = [
+  "THYAO",
+  "GARAN",
+  "AKBNK",
+  "ISCTR",
+  "SISE",
+  "EREGL",
+  "BIMAS",
+  "TUPRS",
+  "KCHOL",
+  "SAHOL",
+  "ASELS",
+  "FROTO",
+  "TOASO",
+  "PGSUS",
+  "TCELL",
+  "YKBNK",
+  "VAKBN",
+  "HALKB",
+  "ARCLK",
+  "SASA"
+];
+
+// A free, unauthenticated public endpoint — not an officially supported API,
+// so any failure (network, shape change, downtime) must degrade to "leave
+// this quote out" rather than break the page. `revalidate` caches the result
+// for 5 minutes so a page view never blocks on a live external call.
+async function fetchQuote(yahooSymbol: string): Promise<Quote | null> {
   try {
-    const res = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/XU100.IS", {
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`, {
       next: { revalidate: 300 }
     });
     if (!res.ok) return null;
     const json = await res.json();
-    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return typeof price === "number" ? price : null;
+    const meta = json?.chart?.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice;
+    const changePercent = meta?.regularMarketChangePercent;
+    if (typeof price !== "number" || typeof changePercent !== "number") return null;
+    return { price, changePercent };
   } catch {
     return null;
   }
 }
 
-// truncgil returns "Satış" as a Turkish-formatted number string (e.g.
-// "6.824,86" — "." as thousands separator, "," as decimal), which plain
-// Number() would misparse (or NaN) — strip thousands dots, then swap the
-// decimal comma for a dot.
+async function fetchStockQuote(symbol: string): Promise<StockQuote | null> {
+  const quote = await fetchQuote(`${symbol}.IS`);
+  return quote ? { symbol, ...quote } : null;
+}
+
+// truncgil returns both the price and its daily change as Turkish-formatted
+// strings (e.g. "6.824,86", "%1,31" — "." as thousands separator, "," as
+// decimal), which plain Number() would misparse (or NaN) — strip thousands
+// dots, then swap the decimal comma for a dot.
 function parseTurkishNumber(value: unknown): number {
   if (typeof value !== "string") return NaN;
   return Number(value.replace(/\./g, "").replace(",", "."));
 }
 
-async function fetchGoldAndSilver(): Promise<{ goldGramTl: number; silverGramTl: number } | null> {
+function parseTurkishPercent(value: unknown): number {
+  if (typeof value !== "string") return NaN;
+  return parseTurkishNumber(value.replace("%", ""));
+}
+
+async function fetchGoldAndSilver(): Promise<{ gold: Quote; silver: Quote } | null> {
   try {
     const res = await fetch("https://finans.truncgil.com/today.json", { next: { revalidate: 300 } });
     if (!res.ok) return null;
     const json = await res.json();
-    const gold = parseTurkishNumber(json?.["gram-altin"]?.["Satış"]);
-    const silver = parseTurkishNumber(json?.["gumus"]?.["Satış"]);
-    if (!Number.isFinite(gold) || !Number.isFinite(silver)) return null;
-    return { goldGramTl: gold, silverGramTl: silver };
+    const gold: Quote = {
+      price: parseTurkishNumber(json?.["gram-altin"]?.["Satış"]),
+      changePercent: parseTurkishPercent(json?.["gram-altin"]?.["Değişim"])
+    };
+    const silver: Quote = {
+      price: parseTurkishNumber(json?.["gumus"]?.["Satış"]),
+      changePercent: parseTurkishPercent(json?.["gumus"]?.["Değişim"])
+    };
+    if (![gold.price, gold.changePercent, silver.price, silver.changePercent].every(Number.isFinite)) return null;
+    return { gold, silver };
   } catch {
     return null;
   }
 }
 
 export async function getMarketSnapshot(): Promise<MarketSnapshot | null> {
-  const [bist100, preciousMetals] = await Promise.all([fetchBist100(), fetchGoldAndSilver()]);
-  if (bist100 === null || preciousMetals === null) return null;
-  return { bist100, ...preciousMetals };
+  const [bist100, metals, stockResults] = await Promise.all([
+    fetchQuote("XU100.IS"),
+    fetchGoldAndSilver(),
+    Promise.all(STOCK_SYMBOLS.map(fetchStockQuote))
+  ]);
+  if (!bist100 || !metals) return null;
+  const stocks = stockResults.filter((s): s is StockQuote => s !== null);
+  return { bist100, gold: metals.gold, silver: metals.silver, stocks };
 }

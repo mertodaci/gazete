@@ -1,6 +1,6 @@
 import { Resend } from "resend";
-import { prisma } from "@gazete/db";
-import { getStoriesForSubscriber } from "./digestQuery";
+import { prisma, Category } from "@gazete/db";
+import { getStoriesForSubscriber, subscriberSelectedCategories } from "./digestQuery";
 import { renderDigestHtml } from "./renderDigest";
 import { getMarketSnapshot } from "./marketData";
 import { istanbulToday } from "./istanbulDate";
@@ -22,9 +22,22 @@ export async function sendDailyDigest(options: { dryRun?: boolean } = {}): Promi
     if (existing?.status === "sent") continue;
 
     const stories = await getStoriesForSubscriber(subscriber.id, digestDate);
-    if (stories.length === 0) continue;
+    const categories = await subscriberSelectedCategories(subscriber.id);
+    const wantsEkonomi = categories.includes(Category.ekonomi);
+    // A subscriber who selected Ekonomi still gets the closing-values table
+    // even with zero Ekonomi stories that day, so only skip the send entirely
+    // when there's neither a story nor that table to show.
+    const hasEkonomiTable = wantsEkonomi && marketSnapshot !== null;
+    if (stories.length === 0 && !hasEkonomiTable) continue;
 
-    const html = renderDigestHtml(stories, subscriber.preferencesToken, config.baseUrl, digestDate, marketSnapshot);
+    const html = renderDigestHtml(
+      stories,
+      subscriber.preferencesToken,
+      config.baseUrl,
+      digestDate,
+      marketSnapshot,
+      wantsEkonomi
+    );
 
     if (options.dryRun) {
       console.log(`[dry-run] would send to ${subscriber.email}: ${stories.length} stories`);

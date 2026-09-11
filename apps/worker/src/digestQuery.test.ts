@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { prisma } from "@gazete/db";
 import { generateTestToken } from "./testUtils";
 import { istanbulToday } from "./istanbulDate";
-import { getStoriesForSubscriber } from "./digestQuery";
+import { getStoriesForSubscriber, subscriberSelectedCategories } from "./digestQuery";
 
 // Mirrors the Istanbul-aware date logic the code under test uses (istanbulDate.ts).
 const today = istanbulToday;
@@ -76,6 +76,19 @@ describe("getStoriesForSubscriber", () => {
     const result = await getStoriesForSubscriber(subscriber.id, today());
     expect(result.map((s) => s.id)).toEqual([breaking.id]);
     expect(result[0].isBreaking).toBe(true);
+  });
+
+  it("subscriberSelectedCategories returns the subscriber's chosen categories", async () => {
+    const subscriber = await prisma.subscriber.create({
+      data: {
+        email: "categories@example.com",
+        preferencesToken: generateTestToken(),
+        categories: { create: [{ category: "ekonomi" }, { category: "spor" }] }
+      }
+    });
+
+    const categories = await subscriberSelectedCategories(subscriber.id);
+    expect(categories.sort()).toEqual(["ekonomi", "spor"]);
   });
 
   it("does not flag a story as breaking for a subscriber who did not select son_dakika", async () => {

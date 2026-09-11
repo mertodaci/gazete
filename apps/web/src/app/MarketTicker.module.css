@@ -8,18 +8,33 @@
 .track {
   display: flex;
   width: max-content;
-  animation: scroll 28s linear infinite;
+  /* 23 items now, up from 3 — duration is scaled up to keep the reading
+     pace (px/sec) roughly constant rather than the loop time fixed. */
+  animation: scroll 100s linear infinite;
+}
+
+.group {
+  display: flex;
+  flex-shrink: 0;
 }
 
 .item {
   flex-shrink: 0;
-  padding-right: 3rem;
+  padding-right: 2.5rem;
   font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   color: #eef1f5;
   white-space: nowrap;
+}
+
+.up {
+  color: #7bc67e;
+}
+
+.down {
+  color: #ef8b8b;
 }
 
 @keyframes scroll {
@@ -36,7 +51,7 @@
     animation: none;
   }
 
-  .item:last-child {
+  .group:last-child {
     display: none;
   }
 }

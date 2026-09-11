@@ -69,17 +69,59 @@ function formatGreetingDate(digestDate: Date): string {
 }
 
 const MARKET_NUMBER_FORMAT = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const MARKET_PERCENT_FORMAT = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // A static snapshot at send time — unlike the site's scrolling ticker, email
 // clients can't reliably run CSS animations, so this is just one line.
 function renderMarketRow(snapshot: MarketSnapshot | null): string {
   if (!snapshot) return "";
   const text = [
-    `BIST 100 ${MARKET_NUMBER_FORMAT.format(snapshot.bist100)}`,
-    `Gram Altın ${MARKET_NUMBER_FORMAT.format(snapshot.goldGramTl)} ₺`,
-    `Gümüş ${MARKET_NUMBER_FORMAT.format(snapshot.silverGramTl)} ₺`
+    `BIST 100 ${MARKET_NUMBER_FORMAT.format(snapshot.bist100.price)}`,
+    `Gram Altın ${MARKET_NUMBER_FORMAT.format(snapshot.gold.price)} ₺`,
+    `Gümüş ${MARKET_NUMBER_FORMAT.format(snapshot.silver.price)} ₺`
   ].join("  &middot;  ");
   return `<p style="margin:8px 0 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#5b6472;">${text}</p>`;
+}
+
+// The Ekonomi card's closing-values table — shown to every subscriber who
+// selected "Ekonomi", even on a day with no Ekonomi stories, since the
+// market data itself doesn't depend on news volume. Sent once a day at
+// 08:45, so "closing" here just means the last traded price on file.
+function renderMarketTableRow(label: string, quote: { price: number; changePercent: number }): string {
+  const isUp = quote.changePercent >= 0;
+  const color = isUp ? "#2f8a3c" : "#c0392b";
+  const arrow = isUp ? "▲" : "▼";
+  return `
+    <tr>
+      <td style="padding:6px 0;border-bottom:1px solid #edeff2;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1b2430;">${escapeHtml(
+        label
+      )}</td>
+      <td style="padding:6px 0;border-bottom:1px solid #edeff2;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1b2430;text-align:right;white-space:nowrap;">${MARKET_NUMBER_FORMAT.format(
+        quote.price
+      )}</td>
+      <td style="padding:6px 0 6px 12px;border-bottom:1px solid #edeff2;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:${color};text-align:right;white-space:nowrap;">${arrow} %${MARKET_PERCENT_FORMAT.format(
+        Math.abs(quote.changePercent)
+      )}</td>
+    </tr>
+  `;
+}
+
+function renderMarketTable(snapshot: MarketSnapshot): string {
+  const rows = [
+    renderMarketTableRow("BIST 100", snapshot.bist100),
+    renderMarketTableRow("Gram Altın (₺)", snapshot.gold),
+    renderMarketTableRow("Gümüş (₺)", snapshot.silver),
+    ...snapshot.stocks.map((stock) => renderMarketTableRow(stock.symbol, stock))
+  ].join("");
+
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;border-collapse:collapse;">
+      <tr>
+        <td colspan="3" style="padding:0 0 6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.04em;color:#9aa4b2;">SON KAPANIŞ</td>
+      </tr>
+      ${rows}
+    </table>
+  `;
 }
 
 // A blank spacer row between stacked card tables — the email-safe way to add
@@ -115,7 +157,8 @@ const MAX_STORIES_PER_CATEGORY = 6;
 function renderCategoryCard(
   items: StoryWithSources[],
   baseUrl: string,
-  opts: { label: string; anchorId: string }
+  opts: { label: string; anchorId: string },
+  extraHtml: string = ""
 ): string {
   const visible = items.slice(0, MAX_STORIES_PER_CATEGORY);
   const hiddenCount = items.length - visible.length;
@@ -150,13 +193,18 @@ function renderCategoryCard(
               <td style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:600;color:#1b2430;padding-right:8px;">${escapeHtml(
                 opts.label
               )}</td>
-              <td>
+              ${
+                visible.length > 0
+                  ? `<td>
                 <span style="display:inline-block;background:#fbead0;color:#4a3311;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;">${estimateReadingMinutes(
                   visible
                 )} dk okuma</span>
-              </td>
+              </td>`
+                  : ""
+              }
             </tr>
           </table>
+          ${extraHtml}
           ${storiesHtml}
           ${moreHtml}
         </td>
@@ -170,14 +218,21 @@ export function renderDigestHtml(
   preferencesToken: string,
   baseUrl: string,
   digestDate: Date = new Date(),
-  marketSnapshot: MarketSnapshot | null = null
+  marketSnapshot: MarketSnapshot | null = null,
+  wantsEkonomi: boolean = false
 ): string {
   const breakingStories = stories.filter((s) => s.isBreaking);
 
+  // The Ekonomi card stays visible for a subscriber who selected it even on
+  // a day with zero Ekonomi stories, since it also carries the closing-values
+  // table (which doesn't depend on news volume) — every other category still
+  // needs at least one story to appear at all.
   const groups = CATEGORY_ORDER.map((category) => ({
     category,
     items: stories.filter((s) => s.category === category)
-  })).filter((group) => group.items.length > 0);
+  })).filter(
+    (group) => group.items.length > 0 || (group.category === "ekonomi" && wantsEkonomi && marketSnapshot !== null)
+  );
 
   const breakingCardHtml =
     breakingStories.length > 0
@@ -189,10 +244,17 @@ export function renderDigestHtml(
       ? groups
           .map(
             (group) =>
-              renderCategoryCard(group.items, baseUrl, {
-                label: CATEGORY_LABELS[group.category] ?? group.category,
-                anchorId: `kategori-${group.category}`
-              }) + spacer(16)
+              renderCategoryCard(
+                group.items,
+                baseUrl,
+                {
+                  label: CATEGORY_LABELS[group.category] ?? group.category,
+                  anchorId: `kategori-${group.category}`
+                },
+                group.category === "ekonomi" && wantsEkonomi && marketSnapshot
+                  ? renderMarketTable(marketSnapshot)
+                  : ""
+              ) + spacer(16)
           )
           .join("")
       : `

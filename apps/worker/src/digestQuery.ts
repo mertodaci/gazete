@@ -9,6 +9,11 @@ export interface StoryWithSources {
   sources: { name: string; url: string }[];
 }
 
+export async function subscriberSelectedCategories(subscriberId: string): Promise<Category[]> {
+  const categories = await prisma.subscriberCategory.findMany({ where: { subscriberId } });
+  return categories.map((c) => c.category);
+}
+
 export async function getStoriesForSubscriber(subscriberId: string, digestDate: Date): Promise<StoryWithSources[]> {
   const categories = await prisma.subscriberCategory.findMany({ where: { subscriberId } });
   if (categories.length === 0) return [];
