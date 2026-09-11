@@ -2,6 +2,10 @@ node_modules/
 .env
 .env.*
 !.env.example
+# Local-only compose overrides (e.g. exposing postgres to the host for
+# host-run tests) — never deploy this to the VPS, where a host port may
+# already be taken by an unrelated process.
+docker-compose.override.yml
 dist/
 build/
 .next/
