@@ -13,6 +13,7 @@ export async function GET(request: Request): Promise<Response> {
 
   return Response.json({
     email: subscriber.email,
+    status: subscriber.status,
     categories: subscriber.categories.map((c) => c.category)
   });
 }
@@ -31,6 +32,9 @@ export async function POST(request: Request): Promise<Response> {
 
   const subscriber = await prisma.subscriber.findUnique({ where: { preferencesToken: token } });
   if (!subscriber) return Response.json({ error: "not_found" }, { status: 404 });
+  // An unsubscribed account never receives a digest, so saved categories
+  // would silently do nothing — reject the write instead of storing dead data.
+  if (subscriber.status !== "active") return Response.json({ error: "not_active" }, { status: 409 });
 
   await prisma.subscriberCategory.deleteMany({ where: { subscriberId: subscriber.id } });
   await prisma.subscriberCategory.createMany({

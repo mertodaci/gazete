@@ -7,6 +7,7 @@ import { SUBSCRIBER_CATEGORY_OPTIONS } from "../../lib/categories";
 export function PreferencesForm({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [inactive, setInactive] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(false);
@@ -21,6 +22,10 @@ export function PreferencesForm({ token }: { token: string }) {
           return;
         }
         const json = await res.json();
+        if (json.status !== "active") {
+          setInactive(true);
+          return;
+        }
         // A subscriber may still have a legacy category (e.g. "gundem", removed
         // from the selectable list) saved from before it was retired — it has
         // no checkbox to show, but leaving it in `selected` would make every
@@ -52,6 +57,7 @@ export function PreferencesForm({ token }: { token: string }) {
 
   if (loading) return <p className={styles.message}>Yükleniyor…</p>;
   if (notFound) return <p className={styles.message}>Bu bağlantı geçersiz.</p>;
+  if (inactive) return <p className={styles.message}>Bu abonelik artık aktif değil, bu yüzden tercihlerini güncelleyemezsin. Tekrar abone olmak istersen ana sayfayı ziyaret edebilirsin.</p>;
 
   return (
     <form className={styles.card} onSubmit={handleSubmit}>
