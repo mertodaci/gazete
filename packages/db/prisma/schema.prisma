@@ -15,6 +15,7 @@ enum Category {
   dunya
   saglik
   kultur_sanat
+  son_dakika
 }
 
 enum SubscriberStatus {
@@ -54,13 +55,15 @@ model Article {
 }
 
 model Story {
-  id             String         @id @default(uuid())
-  category       Category
-  canonicalTitle String         @map("canonical_title")
-  aiSummaryTr    String?        @map("ai_summary_tr")
-  digestDate     DateTime       @map("digest_date") @db.Date
-  createdAt      DateTime       @default(now()) @map("created_at")
-  storyArticles  StoryArticle[]
+  id                 String         @id @default(uuid())
+  category           Category
+  canonicalTitle     String         @map("canonical_title")
+  aiSummaryTr        String?        @map("ai_summary_tr")
+  isBreaking         Boolean        @default(false) @map("is_breaking")
+  breakingAlertSentAt DateTime?     @map("breaking_alert_sent_at")
+  digestDate         DateTime       @map("digest_date") @db.Date
+  createdAt          DateTime       @default(now()) @map("created_at")
+  storyArticles      StoryArticle[]
 
   @@map("stories")
 }

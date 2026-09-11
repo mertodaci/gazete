@@ -1,6 +1,6 @@
 import type { StoryWithSources } from "./digestQuery";
 
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -16,7 +16,7 @@ function isSafeHttpUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
 
-function renderSourceLink(source: { name: string; url: string }): string {
+export function renderSourceLink(source: { name: string; url: string }): string {
   const name = escapeHtml(source.name);
   return isSafeHttpUrl(source.url)
     ? `<a href="${escapeHtml(source.url)}" style="color:#5b6472;">${name}</a>`
@@ -24,7 +24,6 @@ function renderSourceLink(source: { name: string; url: string }): string {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  gundem: "Gündem",
   ekonomi: "Ekonomi",
   teknoloji: "Teknoloji",
   spor: "Spor",
@@ -33,7 +32,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   kultur_sanat: "Kültür-Sanat"
 };
 
-const CATEGORY_ORDER = ["gundem", "ekonomi", "teknoloji", "spor", "dunya", "saglik", "kultur_sanat"];
+const CATEGORY_ORDER = ["ekonomi", "teknoloji", "spor", "dunya", "saglik", "kultur_sanat"];
 
 // Rough adult silent-reading speed in Turkish; only meant to give subscribers
 // a sense of how much is in a category before they open it, not a precise figure.
@@ -98,7 +97,11 @@ function renderSponsorSlot(): string {
 // in-place "show more" like the site does, so the overflow links there instead.
 const MAX_STORIES_PER_CATEGORY = 6;
 
-function renderCategoryCard(category: string, items: StoryWithSources[], baseUrl: string): string {
+function renderCategoryCard(
+  items: StoryWithSources[],
+  baseUrl: string,
+  opts: { label: string; anchorId: string }
+): string {
   const visible = items.slice(0, MAX_STORIES_PER_CATEGORY);
   const hiddenCount = items.length - visible.length;
 
@@ -119,7 +122,7 @@ function renderCategoryCard(category: string, items: StoryWithSources[], baseUrl
   const moreHtml =
     hiddenCount > 0
       ? `<p style="margin:0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;">
-          <a href="${baseUrl}#kategori-${category}" style="color:#4a3311;font-weight:600;">${hiddenCount} haber daha — sitede gör</a>
+          <a href="${baseUrl}#${opts.anchorId}" style="color:#4a3311;font-weight:600;">${hiddenCount} haber daha — sitede gör</a>
         </p>`
       : "";
 
@@ -130,7 +133,7 @@ function renderCategoryCard(category: string, items: StoryWithSources[], baseUrl
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
             <tr>
               <td style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:600;color:#1b2430;padding-right:8px;">${escapeHtml(
-                CATEGORY_LABELS[category] ?? category
+                opts.label
               )}</td>
               <td>
                 <span style="display:inline-block;background:#fbead0;color:#4a3311;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;">${estimateReadingMinutes(
@@ -153,14 +156,29 @@ export function renderDigestHtml(
   baseUrl: string,
   digestDate: Date = new Date()
 ): string {
+  const breakingStories = stories.filter((s) => s.isBreaking);
+
   const groups = CATEGORY_ORDER.map((category) => ({
     category,
     items: stories.filter((s) => s.category === category)
   })).filter((group) => group.items.length > 0);
 
+  const breakingCardHtml =
+    breakingStories.length > 0
+      ? renderCategoryCard(breakingStories, baseUrl, { label: "Son Dakika", anchorId: "son-dakika" }) + spacer(16)
+      : "";
+
   const cardsHtml =
     groups.length > 0
-      ? groups.map((group) => renderCategoryCard(group.category, group.items, baseUrl) + spacer(16)).join("")
+      ? groups
+          .map(
+            (group) =>
+              renderCategoryCard(group.items, baseUrl, {
+                label: CATEGORY_LABELS[group.category] ?? group.category,
+                anchorId: `kategori-${group.category}`
+              }) + spacer(16)
+          )
+          .join("")
       : `
         <table role="presentation" width="${CARD_WIDTH}" cellpadding="0" cellspacing="0" style="max-width:${CARD_WIDTH}px;width:100%;background:#ffffff;border-radius:12px;">
           <tr>
@@ -208,6 +226,7 @@ export function renderDigestHtml(
               ${renderSponsorSlot()}
               ${spacer(16)}
 
+              ${breakingCardHtml}
               ${cardsHtml}
 
               <table role="presentation" width="${CARD_WIDTH}" cellpadding="0" cellspacing="0" style="max-width:${CARD_WIDTH}px;width:100%;">

@@ -54,4 +54,57 @@ describe("getTodaysStories", () => {
     const result = await getTodaysStories();
     expect(result).toEqual([]);
   });
+
+  it("flags a recent breaking story as isBreaking", async () => {
+    await prisma.story.create({
+      data: { category: "spor", canonicalTitle: "Büyük Sonuç", aiSummaryTr: "Özet.", isBreaking: true, digestDate: today() }
+    });
+
+    const result = await getTodaysStories();
+    expect(result).toHaveLength(1);
+    expect(result[0].isBreaking).toBe(true);
+  });
+
+  it("does not flag a breaking story older than 12 hours", async () => {
+    await prisma.story.create({
+      data: {
+        category: "spor",
+        canonicalTitle: "Eski Son Dakika",
+        aiSummaryTr: "Özet.",
+        isBreaking: true,
+        digestDate: today(),
+        createdAt: new Date(Date.now() - 13 * 60 * 60 * 1000)
+      }
+    });
+
+    const result = await getTodaysStories();
+    expect(result).toHaveLength(1);
+    expect(result[0].isBreaking).toBe(false);
+  });
+
+  it("caps breaking stories at MAX_BREAKING_STORIES, most recent first", async () => {
+    for (let i = 0; i < 7; i++) {
+      await prisma.story.create({
+        data: {
+          category: "spor",
+          canonicalTitle: `Son Dakika ${i}`,
+          aiSummaryTr: "Özet.",
+          isBreaking: true,
+          digestDate: today(),
+          createdAt: new Date(Date.now() - i * 60 * 1000)
+        }
+      });
+    }
+
+    const result = await getTodaysStories();
+    const breakingResults = result.filter((s) => s.isBreaking);
+    expect(breakingResults).toHaveLength(5);
+    expect(breakingResults.map((s) => s.canonicalTitle)).toEqual([
+      "Son Dakika 0",
+      "Son Dakika 1",
+      "Son Dakika 2",
+      "Son Dakika 3",
+      "Son Dakika 4"
+    ]);
+  });
 });

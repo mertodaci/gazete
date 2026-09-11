@@ -1,0 +1,1 @@
+ALTER TABLE "stories" ADD COLUMN "is_breaking" BOOLEAN NOT NULL DEFAULT false;

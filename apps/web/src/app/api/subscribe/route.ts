@@ -2,8 +2,8 @@ import { prisma, Category } from "@gazete/db";
 import { generateToken } from "@/lib/token";
 import { isHoneypotTripped, checkRateLimit } from "@/lib/rateLimit";
 import { sendWelcomeEmail } from "@/lib/email";
+import { SUBSCRIBER_SELECTABLE_CATEGORIES } from "@/lib/categories";
 
-const VALID_CATEGORIES = Object.values(Category);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
@@ -51,7 +51,11 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "invalid_email" }, { status: 400 });
   }
 
-  if (!categories || categories.length === 0 || !categories.every((c) => VALID_CATEGORIES.includes(c as Category))) {
+  if (
+    !categories ||
+    categories.length === 0 ||
+    !categories.every((c) => SUBSCRIBER_SELECTABLE_CATEGORIES.includes(c as Category))
+  ) {
     return Response.json({ error: "invalid_categories" }, { status: 400 });
   }
 

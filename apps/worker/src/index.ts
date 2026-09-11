@@ -3,19 +3,23 @@ import { config } from "./config";
 import { fetchAllSources } from "./fetchRss";
 import { processNewArticles } from "./processArticles";
 import { sendDailyDigest } from "./sendDigest";
+import { sendBreakingAlerts } from "./sendBreakingAlerts";
 
 const isDryRun = process.argv.includes("--dry-run");
 
-async function runFetchPipeline(): Promise<void> {
+async function runFetchPipeline(options: { dryRun?: boolean } = {}): Promise<void> {
   const errors = await fetchAllSources();
   for (const error of errors) {
     console.error(`RSS fetch failed for ${error.sourceName} (${error.sourceId}): ${error.error}`);
   }
   await processNewArticles();
+  // Rides the existing hourly cycle rather than a new schedule — only sends
+  // anything when this pass just classified a new breaking story.
+  await sendBreakingAlerts(options);
 }
 
 if (isDryRun) {
-  runFetchPipeline()
+  runFetchPipeline({ dryRun: true })
     .then(() => sendDailyDigest({ dryRun: true }))
     .then(() => process.exit(0))
     .catch((err) => {

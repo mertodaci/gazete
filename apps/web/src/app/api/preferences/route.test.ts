@@ -62,9 +62,35 @@ describe("POST /api/preferences", () => {
       new Request("http://localhost:3000/api/preferences", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token: "doesnotexist", categories: ["gundem"] })
+        body: JSON.stringify({ token: "doesnotexist", categories: ["ekonomi"] })
       })
     );
     expect(res.status).toBe(404);
+  });
+
+  it("rejects 'gundem' with 400 — it's an internal fallback, never a real subscriber selection", async () => {
+    const { token } = await makeSubscriber(["ekonomi"]);
+    const res = await POST(
+      new Request("http://localhost:3000/api/preferences", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, categories: ["gundem"] })
+      })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("accepts 'son_dakika' as a selectable category", async () => {
+    const { sub, token } = await makeSubscriber(["ekonomi"]);
+    const res = await POST(
+      new Request("http://localhost:3000/api/preferences", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, categories: ["son_dakika"] })
+      })
+    );
+    expect(res.status).toBe(200);
+    const updated = await prisma.subscriberCategory.findMany({ where: { subscriberId: sub.id } });
+    expect(updated.map((c) => c.category)).toEqual(["son_dakika"]);
   });
 });

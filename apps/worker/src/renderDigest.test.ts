@@ -9,6 +9,7 @@ describe("renderDigestHtml", () => {
       category: "ekonomi",
       canonicalTitle: "Merkez Bankası faiz kararı",
       aiSummaryTr: "Merkez Bankası faizi sabit tuttu.",
+      isBreaking: false,
       sources: [{ name: "AA", url: "https://example.com/a" }, { name: "NTV", url: "https://example.com/b" }]
     }
   ];
@@ -33,6 +34,7 @@ describe("renderDigestHtml", () => {
       category: "spor",
       canonicalTitle: `Haber ${i}`,
       aiSummaryTr: `Özet ${i}.`,
+      isBreaking: false,
       sources: []
     }));
     const html = renderDigestHtml(many, "tok123", "https://gazete.example.com");
@@ -45,13 +47,48 @@ describe("renderDigestHtml", () => {
     expect(html).toContain("https://gazete.example.com#kategori-spor");
   });
 
+  it("renders a Son Dakika section, before the real-category cards, when a story is breaking", () => {
+    const withBreaking: StoryWithSources[] = [
+      {
+        id: "b1",
+        category: "spor",
+        canonicalTitle: "Büyük Final Sonucu",
+        aiSummaryTr: "Şampiyon belli oldu.",
+        isBreaking: true,
+        sources: []
+      },
+      {
+        id: "n1",
+        category: "ekonomi",
+        canonicalTitle: "Rutin Ekonomi Haberi",
+        aiSummaryTr: "Sıradan bir gelişme.",
+        isBreaking: false,
+        sources: []
+      }
+    ];
+    const html = renderDigestHtml(withBreaking, "tok123", "https://gazete.example.com");
+
+    expect(html).toContain("Son Dakika");
+    expect(html.indexOf("Son Dakika")).toBeLessThan(html.indexOf("Rutin Ekonomi Haberi"));
+    // A breaking story renders in both its Son Dakika card and its own
+    // category's card — not mutually exclusive.
+    const occurrences = html.split("Büyük Final Sonucu").length - 1;
+    expect(occurrences).toBe(2);
+  });
+
+  it("does not render a Son Dakika section when no story is breaking", () => {
+    const html = renderDigestHtml(stories, "tok123", "https://gazete.example.com");
+    expect(html).not.toContain("Son Dakika");
+  });
+
   it("escapes a quote in a source URL so it cannot break out of the href attribute", () => {
     const injected: StoryWithSources[] = [
       {
         id: "3",
-        category: "gundem",
+        category: "spor",
         canonicalTitle: "Başlık",
         aiSummaryTr: "Özet.",
+        isBreaking: false,
         sources: [{ name: "Kötü Kaynak", url: 'https://example.com/a" onmouseover="alert(1)' }]
       }
     ];
@@ -70,9 +107,10 @@ describe("renderDigestHtml", () => {
     const dangerous: StoryWithSources[] = [
       {
         id: "4",
-        category: "gundem",
+        category: "spor",
         canonicalTitle: "Başlık",
         aiSummaryTr: "Özet.",
+        isBreaking: false,
         sources: [{ name: "Şüpheli", url: "javascript:alert(1)" }]
       }
     ];
@@ -86,9 +124,10 @@ describe("renderDigestHtml", () => {
     const malicious: StoryWithSources[] = [
       {
         id: "2",
-        category: "gundem",
+        category: "spor",
         canonicalTitle: "<img src=x onerror=alert(1)>",
         aiSummaryTr: "<script>alert(1)</script>",
+        isBreaking: false,
         sources: []
       }
     ];

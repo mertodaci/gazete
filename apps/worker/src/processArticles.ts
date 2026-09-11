@@ -15,14 +15,18 @@ const MAX_ARTICLE_AGE_MS = 36 * 60 * 60 * 1000;
 export async function processNewArticles(): Promise<void> {
   const cutoff = new Date(Date.now() - MAX_ARTICLE_AGE_MS);
   const unprocessed = await prisma.article.findMany({
-    where: { storyArticles: { none: {} }, publishedAt: { gte: cutoff } },
-    include: { source: true }
+    where: { storyArticles: { none: {} }, publishedAt: { gte: cutoff } }
   });
 
   for (const article of unprocessed) {
     try {
+      // Cross-category on purpose: the same real-world event can be covered by
+      // sources we've bucketed into different categories (a general feed and a
+      // topic-specific one), and it's still one story regardless of who wrote
+      // about it. Matching happens on title alone, before any Claude call, so
+      // cross-source duplicate coverage still costs zero extra API calls.
       const todaysStories = await prisma.story.findMany({
-        where: { category: article.source.category, digestDate: { gte: istanbulToday() } }
+        where: { digestDate: { gte: istanbulToday() } }
       });
 
       const match = todaysStories.find(
@@ -34,12 +38,13 @@ export async function processNewArticles(): Promise<void> {
         continue;
       }
 
-      const summary = await summarizeArticle(article.title, article.rawDescription);
+      const result = await summarizeArticle(article.title, article.rawDescription);
       await prisma.story.create({
         data: {
-          category: article.source.category,
+          category: result.category,
           canonicalTitle: article.title,
-          aiSummaryTr: summary,
+          aiSummaryTr: result.summary,
+          isBreaking: result.isBreaking,
           digestDate: istanbulToday(),
           storyArticles: { create: { articleId: article.id } }
         }

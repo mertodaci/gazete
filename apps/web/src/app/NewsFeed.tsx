@@ -5,7 +5,6 @@ import type { PublicStory } from "../lib/publicStories";
 import styles from "./NewsFeed.module.css";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  gundem: "Gündem",
   ekonomi: "Ekonomi",
   teknoloji: "Teknoloji",
   spor: "Spor",
@@ -14,7 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   kultur_sanat: "Kültür-Sanat"
 };
 
-const CATEGORY_ORDER = ["gundem", "ekonomi", "teknoloji", "spor", "dunya", "saglik", "kultur_sanat"];
+const CATEGORY_ORDER = ["ekonomi", "teknoloji", "spor", "dunya", "saglik", "kultur_sanat"];
 
 // A busy category (ekonomi, spor) can carry dozens of stories on an active
 // day — showing all of them at once is what made the homepage feel like an
@@ -22,15 +21,35 @@ const CATEGORY_ORDER = ["gundem", "ekonomi", "teknoloji", "spor", "dunya", "sagl
 // without hiding anything permanently (readers can still expand).
 const INITIAL_VISIBLE = 6;
 
-function CategorySection({ category, items }: { category: string; items: PublicStory[] }) {
+const PUBLISHED_AT_FORMAT = new Intl.DateTimeFormat("tr-TR", {
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Istanbul"
+});
+
+function formatPublishedAt(date: Date): string {
+  return PUBLISHED_AT_FORMAT.format(date);
+}
+
+function CategorySection({
+  id,
+  title,
+  items
+}: {
+  id: string;
+  title: string;
+  items: PublicStory[];
+}) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? items : items.slice(0, INITIAL_VISIBLE);
   const hiddenCount = items.length - visible.length;
 
   return (
-    <div className={styles.section} id={`kategori-${category}`}>
+    <div className={styles.section} id={id}>
       <div className={styles.sectionHead}>
-        <h3 className={styles.sectionTitle}>{CATEGORY_LABELS[category] ?? category}</h3>
+        <h3 className={styles.sectionTitle}>{title}</h3>
         <span className={styles.sectionCount}>{items.length} haber</span>
       </div>
 
@@ -41,7 +60,7 @@ function CategorySection({ category, items }: { category: string; items: PublicS
             <p className={styles.summary}>{story.aiSummaryTr}</p>
             {story.sources.length > 0 && (
               <p className={styles.sources}>
-                Kaynak:{" "}
+                {formatPublishedAt(story.publishedAt)} &middot; Kaynak:{" "}
                 {story.sources.map((s, i) => (
                   <span key={s.url}>
                     {i > 0 && ", "}
@@ -77,6 +96,8 @@ export function NewsFeed({ stories }: { stories: PublicStory[] }) {
     );
   }
 
+  const breakingStories = stories.filter((s) => s.isBreaking);
+
   const byCategory = CATEGORY_ORDER.map((category) => ({
     category,
     items: stories.filter((s) => s.category === category)
@@ -87,6 +108,11 @@ export function NewsFeed({ stories }: { stories: PublicStory[] }) {
       <h2 className={styles.feedTitle}>Bugünün haberleri</h2>
 
       <nav className={styles.categoryNav} aria-label="Kategoriler">
+        {breakingStories.length > 0 && (
+          <a href="#son-dakika" className={styles.categoryLink}>
+            Son Dakika
+          </a>
+        )}
         {byCategory.map(({ category }) => (
           <a key={category} href={`#kategori-${category}`} className={styles.categoryLink}>
             {CATEGORY_LABELS[category] ?? category}
@@ -94,8 +120,17 @@ export function NewsFeed({ stories }: { stories: PublicStory[] }) {
         ))}
       </nav>
 
+      {breakingStories.length > 0 && (
+        <CategorySection id="son-dakika" title="Son Dakika" items={breakingStories} />
+      )}
+
       {byCategory.map(({ category, items }) => (
-        <CategorySection key={category} category={category} items={items} />
+        <CategorySection
+          key={category}
+          id={`kategori-${category}`}
+          title={CATEGORY_LABELS[category] ?? category}
+          items={items}
+        />
       ))}
     </section>
   );

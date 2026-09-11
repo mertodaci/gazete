@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import styles from "./SubscribeForm.module.css";
-
-const CATEGORIES: { value: string; label: string }[] = [
-  { value: "gundem", label: "Gündem" },
-  { value: "ekonomi", label: "Ekonomi" },
-  { value: "teknoloji", label: "Teknoloji" },
-  { value: "spor", label: "Spor" },
-  { value: "dunya", label: "Dünya" },
-  { value: "saglik", label: "Sağlık" },
-  { value: "kultur_sanat", label: "Kültür-Sanat" }
-];
+import { SUBSCRIBER_CATEGORY_OPTIONS } from "../lib/categories";
 
 export function SubscribeForm() {
   const [email, setEmail] = useState("");
@@ -65,7 +56,7 @@ export function SubscribeForm() {
       <fieldset>
         <legend className={styles.chipsLegend}>İlgilendiğin kategoriler</legend>
         <div className={styles.chips}>
-          {CATEGORIES.map((c) => (
+          {SUBSCRIBER_CATEGORY_OPTIONS.map((c) => (
             <span className={styles.chip} key={c.value}>
               <input
                 type="checkbox"

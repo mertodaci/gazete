@@ -1,6 +1,5 @@
 import { prisma, Category } from "@gazete/db";
-
-const VALID_CATEGORIES = Object.values(Category);
+import { SUBSCRIBER_SELECTABLE_CATEGORIES } from "@/lib/categories";
 
 export async function GET(request: Request): Promise<Response> {
   const token = new URL(request.url).searchParams.get("token");
@@ -22,7 +21,11 @@ export async function POST(request: Request): Promise<Response> {
   const { token, categories } = (await request.json()) as { token?: string; categories?: string[] };
 
   if (!token) return Response.json({ error: "missing_token" }, { status: 400 });
-  if (!categories || categories.length === 0 || !categories.every((c) => VALID_CATEGORIES.includes(c as Category))) {
+  if (
+    !categories ||
+    categories.length === 0 ||
+    !categories.every((c) => SUBSCRIBER_SELECTABLE_CATEGORIES.includes(c as Category))
+  ) {
     return Response.json({ error: "invalid_categories" }, { status: 400 });
   }
 

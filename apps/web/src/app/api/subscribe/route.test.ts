@@ -35,7 +35,7 @@ describe("POST /api/subscribe", () => {
   });
 
   it("updates categories in place if the email already exists, without a second welcome email", async () => {
-    await POST(makeRequest({ email: "repeat@example.com", categories: ["gundem"] }, "3.3.3.3"));
+    await POST(makeRequest({ email: "repeat@example.com", categories: ["ekonomi"] }, "3.3.3.3"));
     vi.mocked(sendWelcomeEmail).mockClear();
 
     const res = await POST(makeRequest({ email: "repeat@example.com", categories: ["teknoloji"] }, "4.4.4.4"));
@@ -75,6 +75,23 @@ describe("POST /api/subscribe", () => {
   it("rejects an empty categories list with 400", async () => {
     const res = await POST(makeRequest({ email: "valid@example.com", categories: [] }, "6.6.6.6"));
     expect(res.status).toBe(400);
+  });
+
+  it("rejects 'gundem' with 400 — it's an internal fallback, never a real subscriber selection", async () => {
+    const res = await POST(makeRequest({ email: "gundem@example.com", categories: ["gundem"] }, "10.10.10.10"));
+    expect(res.status).toBe(400);
+    const sub = await prisma.subscriber.findUnique({ where: { email: "gundem@example.com" } });
+    expect(sub).toBeNull();
+  });
+
+  it("accepts 'son_dakika' as a selectable category", async () => {
+    const res = await POST(makeRequest({ email: "breaking@example.com", categories: ["son_dakika"] }, "11.11.11.11"));
+    expect(res.status).toBe(201);
+    const sub = await prisma.subscriber.findUnique({
+      where: { email: "breaking@example.com" },
+      include: { categories: true }
+    });
+    expect(sub?.categories.map((c) => c.category)).toEqual(["son_dakika"]);
   });
 
   it("silently accepts (200) but does not create a row when the honeypot is filled", async () => {
