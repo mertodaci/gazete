@@ -4,17 +4,13 @@ function getClient() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
-// Same brand mark used in the daily digest (apps/worker/src/renderDigest.ts) —
-// duplicated rather than shared because the web app and worker are separate
-// deployables with no shared HTML-email package between them.
-const LOGO_MARK = `<svg width="26" height="17" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Türkiye'nin Gazetesi">
-  <path d="M2 12C2 6 6 2 11 1L12 3.2C8.5 4.3 6.5 6.7 6.3 9.5C7 9.1 7.8 9 8.6 9.2C10.3 9.6 11.3 11 11 12.7C10.7 14.4 9.1 15.5 7.3 15.2C4.6 14.7 2.3 14.3 2 12Z" fill="#c9862c"/>
-  <path d="M13 12C13 6 17 2 22 1L23 3.2C19.5 4.3 17.5 6.7 17.3 9.5C18 9.1 18.8 9 19.6 9.2C21.3 9.6 22.3 11 22 12.7C21.7 14.4 20.1 15.5 18.3 15.2C15.6 14.7 13.3 14.3 13 12Z" fill="#c9862c"/>
-</svg>`;
-
 export async function sendWelcomeEmail(to: string, preferencesToken: string): Promise<void> {
   const baseUrl = process.env.BASE_URL;
   const preferencesUrl = `${baseUrl}/preferences?token=${preferencesToken}`;
+  // Loaded from apps/web/public/logo-mark.svg as an <img> rather than inline
+  // <svg> markup — Gmail and several other mail clients strip inline SVG from
+  // HTML email as a sanitization step, but an externally-loaded image survives.
+  const logoMark = `<img src="${baseUrl}/logo-mark.svg" width="26" height="17" alt="Türkiye'nin Gazetesi" style="display:block;border:0;">`;
 
   await getClient().emails.send({
     from: process.env.FROM_EMAIL as string,
@@ -23,7 +19,7 @@ export async function sendWelcomeEmail(to: string, preferencesToken: string): Pr
     html: `
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
         <tr>
-          <td style="padding-right:8px;vertical-align:middle;">${LOGO_MARK}</td>
+          <td style="padding-right:8px;vertical-align:middle;">${logoMark}</td>
           <td style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:20px;color:#1b2430;vertical-align:middle;">Türkiye'nin Gazetesi</td>
         </tr>
       </table>

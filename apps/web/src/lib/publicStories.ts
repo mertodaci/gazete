@@ -11,6 +11,7 @@ function istanbulToday(): Date {
 export interface PublicStory {
   id: string;
   category: Category;
+  canonicalTitle: string;
   aiSummaryTr: string;
   sources: { name: string; url: string }[];
 }
@@ -32,6 +33,7 @@ export async function getTodaysStories(): Promise<PublicStory[]> {
   return stories.map((story) => ({
     id: story.id,
     category: story.category,
+    canonicalTitle: story.canonicalTitle,
     aiSummaryTr: story.aiSummaryTr as string,
     sources: story.storyArticles
       .filter((sa) => isSafeHttpUrl(sa.article.url))

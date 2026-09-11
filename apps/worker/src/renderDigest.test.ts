@@ -7,13 +7,15 @@ describe("renderDigestHtml", () => {
     {
       id: "1",
       category: "ekonomi",
+      canonicalTitle: "Merkez Bankası faiz kararı",
       aiSummaryTr: "Merkez Bankası faizi sabit tuttu.",
       sources: [{ name: "AA", url: "https://example.com/a" }, { name: "NTV", url: "https://example.com/b" }]
     }
   ];
 
-  it("includes each story's summary and every source link", () => {
+  it("includes each story's title, summary, and every source link", () => {
     const html = renderDigestHtml(stories, "tok123", "https://gazete.example.com");
+    expect(html).toContain("Merkez Bankası faiz kararı");
     expect(html).toContain("Merkez Bankası faizi sabit tuttu.");
     expect(html).toContain("https://example.com/a");
     expect(html).toContain("https://example.com/b");
@@ -25,11 +27,30 @@ describe("renderDigestHtml", () => {
     expect(html).toContain("https://gazete.example.com/unsubscribe?token=tok123");
   });
 
+  it("caps a category at 6 stories and links to the rest on the site", () => {
+    const many: StoryWithSources[] = Array.from({ length: 8 }, (_, i) => ({
+      id: `s${i}`,
+      category: "spor",
+      canonicalTitle: `Haber ${i}`,
+      aiSummaryTr: `Özet ${i}.`,
+      sources: []
+    }));
+    const html = renderDigestHtml(many, "tok123", "https://gazete.example.com");
+
+    expect(html).toContain("Haber 0");
+    expect(html).toContain("Haber 5");
+    expect(html).not.toContain("Haber 6");
+    expect(html).not.toContain("Haber 7");
+    expect(html).toContain("2 haber daha");
+    expect(html).toContain("https://gazete.example.com#kategori-spor");
+  });
+
   it("escapes a quote in a source URL so it cannot break out of the href attribute", () => {
     const injected: StoryWithSources[] = [
       {
         id: "3",
         category: "gundem",
+        canonicalTitle: "Başlık",
         aiSummaryTr: "Özet.",
         sources: [{ name: "Kötü Kaynak", url: 'https://example.com/a" onmouseover="alert(1)' }]
       }
@@ -50,6 +71,7 @@ describe("renderDigestHtml", () => {
       {
         id: "4",
         category: "gundem",
+        canonicalTitle: "Başlık",
         aiSummaryTr: "Özet.",
         sources: [{ name: "Şüpheli", url: "javascript:alert(1)" }]
       }
@@ -60,12 +82,20 @@ describe("renderDigestHtml", () => {
     expect(html).toContain("Şüpheli");
   });
 
-  it("escapes HTML in the summary to prevent injection", () => {
+  it("escapes HTML in the title and summary to prevent injection", () => {
     const malicious: StoryWithSources[] = [
-      { id: "2", category: "gundem", aiSummaryTr: "<script>alert(1)</script>", sources: [] }
+      {
+        id: "2",
+        category: "gundem",
+        canonicalTitle: "<img src=x onerror=alert(1)>",
+        aiSummaryTr: "<script>alert(1)</script>",
+        sources: []
+      }
     ];
     const html = renderDigestHtml(malicious, "tok123", "https://gazete.example.com");
     expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).not.toContain("<img src=x onerror=alert(1)>");
     expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 });

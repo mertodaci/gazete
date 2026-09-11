@@ -1,7 +1,7 @@
 .feed {
   width: 100%;
-  max-width: 42rem;
-  margin-top: 4rem;
+  max-width: 64rem;
+  margin-top: 3rem;
 }
 
 .feedTitle {
@@ -9,36 +9,92 @@
   font-weight: 600;
   font-size: 1.5rem;
   text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.categoryNav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 0.5rem;
+  padding-bottom: 1.75rem;
   margin-bottom: 2rem;
+  border-bottom: 1px solid var(--rule);
 }
 
-.group {
-  margin-bottom: 2.25rem;
-}
-
-.groupTitle {
+.categoryLink {
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--accent-ink);
-  background: var(--accent);
-  display: inline-block;
-  padding: 0.2rem 0.7rem;
+  color: var(--ink-muted);
+  padding: 0.35rem 0.85rem;
   border-radius: 999px;
-  margin-bottom: 0.9rem;
+  text-decoration: none;
+}
+
+.categoryLink:hover {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.section {
+  margin-bottom: 3rem;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid var(--ink);
+  scroll-margin-top: 1.5rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+
+.sectionCount {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 42rem) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .story {
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: 0.85rem;
-  padding: 1.25rem 1.4rem;
-  margin-bottom: 0.9rem;
+  padding: 1.15rem 1.3rem;
+}
+
+.storyTitle {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  margin-bottom: 0.5rem;
 }
 
 .summary {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.55;
-  color: var(--ink);
+  color: var(--ink-muted);
 }
 
 .sources {
@@ -55,6 +111,24 @@
 
 .sources a:hover {
   color: var(--ink);
+}
+
+.more {
+  display: block;
+  margin: 1.1rem auto 0;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.25rem;
+  cursor: pointer;
+}
+
+.more:hover {
+  background: var(--accent);
 }
 
 .empty {

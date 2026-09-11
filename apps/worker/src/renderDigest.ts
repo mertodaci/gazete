@@ -47,19 +47,13 @@ function estimateReadingMinutes(stories: StoryWithSources[]): number {
   return Math.max(1, Math.ceil(wordCount / WORDS_PER_MINUTE));
 }
 
-// A stylized opening-quote mark (two comma glyphs) — the brand's mark, paired
-// with the wordmark wherever "Türkiye'nin Gazetesi" appears. Colors are
-// hardcoded rather than pulled from CSS custom properties because most email
-// clients (Outlook desktop in particular) don't resolve them.
-function logoMark(width: number, height: number): string {
-  return `<svg width="${width}" height="${height}" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Türkiye'nin Gazetesi">
-  <path d="M2 12C2 6 6 2 11 1L12 3.2C8.5 4.3 6.5 6.7 6.3 9.5C7 9.1 7.8 9 8.6 9.2C10.3 9.6 11.3 11 11 12.7C10.7 14.4 9.1 15.5 7.3 15.2C4.6 14.7 2.3 14.3 2 12Z" fill="#c9862c"/>
-  <path d="M13 12C13 6 17 2 22 1L23 3.2C19.5 4.3 17.5 6.7 17.3 9.5C18 9.1 18.8 9 19.6 9.2C21.3 9.6 22.3 11 22 12.7C21.7 14.4 20.1 15.5 18.3 15.2C15.6 14.7 13.3 14.3 13 12Z" fill="#c9862c"/>
-</svg>`;
+// The brand's mark (two comma glyphs), rendered as an <img> pointing at a
+// hosted SVG rather than inline <svg> markup — Gmail and several other
+// mail clients strip inline SVG from HTML email as a sanitization step, but
+// an externally-loaded image survives.
+function logoMark(baseUrl: string, width: number, height: number): string {
+  return `<img src="${baseUrl}/logo-mark.svg" width="${width}" height="${height}" alt="Türkiye'nin Gazetesi" style="display:block;border:0;">`;
 }
-
-const LOGO_MARK = logoMark(26, 17);
-const LOGO_MARK_LARGE = logoMark(52, 34);
 
 const CARD_WIDTH = 600;
 
@@ -98,11 +92,21 @@ function renderSponsorSlot(): string {
   `;
 }
 
-function renderCategoryCard(category: string, items: StoryWithSources[]): string {
-  const storiesHtml = items
+// Mirrors the website's per-section cap (apps/web/src/app/NewsFeed.tsx) — a
+// busy category can carry dozens of stories on an active day, which is what
+// made the email feel unbounded and disorganized. The email can't offer an
+// in-place "show more" like the site does, so the overflow links there instead.
+const MAX_STORIES_PER_CATEGORY = 6;
+
+function renderCategoryCard(category: string, items: StoryWithSources[], baseUrl: string): string {
+  const visible = items.slice(0, MAX_STORIES_PER_CATEGORY);
+  const hiddenCount = items.length - visible.length;
+
+  const storiesHtml = visible
     .map(
       (story) => `
         <div style="margin:0 0 18px;">
+          <p style="margin:0 0 4px;font-weight:700;">${escapeHtml(story.canonicalTitle)}</p>
           <p style="margin:0 0 6px;">${escapeHtml(story.aiSummaryTr)}</p>
           <p style="margin:0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#5b6472;">${story.sources
             .map(renderSourceLink)
@@ -111,6 +115,13 @@ function renderCategoryCard(category: string, items: StoryWithSources[]): string
       `
     )
     .join("");
+
+  const moreHtml =
+    hiddenCount > 0
+      ? `<p style="margin:0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;">
+          <a href="${baseUrl}#kategori-${category}" style="color:#4a3311;font-weight:600;">${hiddenCount} haber daha — sitede gör</a>
+        </p>`
+      : "";
 
   return `
     <table role="presentation" width="${CARD_WIDTH}" cellpadding="0" cellspacing="0" style="max-width:${CARD_WIDTH}px;width:100%;background:#ffffff;border-radius:12px;">
@@ -123,12 +134,13 @@ function renderCategoryCard(category: string, items: StoryWithSources[]): string
               )}</td>
               <td>
                 <span style="display:inline-block;background:#fbead0;color:#4a3311;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;">${estimateReadingMinutes(
-                  items
+                  visible
                 )} dk okuma</span>
               </td>
             </tr>
           </table>
           ${storiesHtml}
+          ${moreHtml}
         </td>
       </tr>
     </table>
@@ -148,7 +160,7 @@ export function renderDigestHtml(
 
   const cardsHtml =
     groups.length > 0
-      ? groups.map((group) => renderCategoryCard(group.category, group.items) + spacer(16)).join("")
+      ? groups.map((group) => renderCategoryCard(group.category, group.items, baseUrl) + spacer(16)).join("")
       : `
         <table role="presentation" width="${CARD_WIDTH}" cellpadding="0" cellspacing="0" style="max-width:${CARD_WIDTH}px;width:100%;background:#ffffff;border-radius:12px;">
           <tr>
@@ -181,7 +193,7 @@ export function renderDigestHtml(
                   <td style="padding:36px 24px;text-align:center;font-family:Georgia,'Times New Roman',serif;color:#1b2430;">
                     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 10px;">
                       <tr>
-                        <td>${LOGO_MARK_LARGE}</td>
+                        <td>${logoMark(baseUrl, 52, 34)}</td>
                       </tr>
                     </table>
                     <p style="margin:0 0 6px;font-style:italic;font-weight:700;font-size:26px;">Türkiye'nin Gazetesi</p>

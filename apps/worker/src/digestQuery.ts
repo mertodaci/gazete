@@ -3,6 +3,7 @@ import { prisma } from "@gazete/db";
 export interface StoryWithSources {
   id: string;
   category: string;
+  canonicalTitle: string;
   aiSummaryTr: string;
   sources: { name: string; url: string }[];
 }
@@ -26,6 +27,7 @@ export async function getStoriesForSubscriber(subscriberId: string, digestDate: 
     .map((story) => ({
       id: story.id,
       category: story.category,
+      canonicalTitle: story.canonicalTitle,
       aiSummaryTr: story.aiSummaryTr as string,
       sources: story.storyArticles.map((sa) => ({ name: sa.article.source.name, url: sa.article.url }))
     }));
