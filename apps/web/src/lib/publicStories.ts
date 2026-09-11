@@ -1,13 +1,5 @@
 import { prisma, Category, MAX_BREAKING_STORIES, BREAKING_WINDOW_MS } from "@gazete/db";
 
-// Mirrors apps/worker/src/istanbulDate.ts: Turkey is a fixed UTC+3, no DST,
-// so "today" for a public-facing story list must match the same calendar
-// day the worker stamps onto each Story's digestDate.
-function istanbulToday(): Date {
-  const shifted = new Date(Date.now() + 3 * 60 * 60 * 1000);
-  return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
-}
-
 export interface PublicStory {
   id: string;
   category: Category;
@@ -25,11 +17,16 @@ function isSafeHttpUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
 
-export async function getTodaysStories(): Promise<PublicStory[]> {
+// Every story ever published, most recent first — not scoped to today, so
+// the homepage doubles as an archive. Each category section on the site
+// already caps how many render at once and offers "daha fazla göster" to
+// reveal the rest, so the ever-growing history stays browsable rather than
+// dumping everything into view at once.
+export async function getAllStories(): Promise<PublicStory[]> {
   const breakingSince = new Date(Date.now() - BREAKING_WINDOW_MS);
 
   const stories = await prisma.story.findMany({
-    where: { digestDate: istanbulToday(), aiSummaryTr: { not: null } },
+    where: { aiSummaryTr: { not: null } },
     include: { storyArticles: { include: { article: { include: { source: true } } } } },
     orderBy: { createdAt: "desc" }
   });

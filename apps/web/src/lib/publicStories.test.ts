@@ -1,13 +1,13 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { prisma } from "@gazete/db";
-import { getTodaysStories } from "./publicStories";
+import { getAllStories } from "./publicStories";
 
 function today(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-describe("getTodaysStories", () => {
+describe("getAllStories", () => {
   beforeEach(async () => {
     await prisma.storyArticle.deleteMany({});
     await prisma.story.deleteMany({});
@@ -32,7 +32,7 @@ describe("getTodaysStories", () => {
       }
     });
 
-    const result = await getTodaysStories();
+    const result = await getAllStories();
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(story.id);
@@ -41,17 +41,37 @@ describe("getTodaysStories", () => {
     expect(result[0].sources).toEqual([{ name: "AA", url: "https://example.com/story1" }]);
   });
 
+  it("also includes stories from previous days, most recent first", async () => {
+    const yesterday = new Date(today().getTime() - 24 * 60 * 60 * 1000);
+    const older = await prisma.story.create({
+      data: {
+        category: "spor",
+        canonicalTitle: "Dünkü Haber",
+        aiSummaryTr: "Özet.",
+        digestDate: yesterday,
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000)
+      }
+    });
+    const newer = await prisma.story.create({
+      data: { category: "spor", canonicalTitle: "Bugünkü Haber", aiSummaryTr: "Özet.", digestDate: today() }
+    });
+
+    const result = await getAllStories();
+
+    expect(result.map((s) => s.id)).toEqual([newer.id, older.id]);
+  });
+
   it("excludes stories still missing an AI summary", async () => {
     await prisma.story.create({
       data: { category: "spor", canonicalTitle: "İşlenmekte olan haber", digestDate: today() }
     });
 
-    const result = await getTodaysStories();
+    const result = await getAllStories();
     expect(result).toEqual([]);
   });
 
-  it("returns an empty array when there are no stories today", async () => {
-    const result = await getTodaysStories();
+  it("returns an empty array when there are no stories at all", async () => {
+    const result = await getAllStories();
     expect(result).toEqual([]);
   });
 
@@ -60,7 +80,7 @@ describe("getTodaysStories", () => {
       data: { category: "spor", canonicalTitle: "Büyük Sonuç", aiSummaryTr: "Özet.", isBreaking: true, digestDate: today() }
     });
 
-    const result = await getTodaysStories();
+    const result = await getAllStories();
     expect(result).toHaveLength(1);
     expect(result[0].isBreaking).toBe(true);
   });
@@ -77,7 +97,7 @@ describe("getTodaysStories", () => {
       }
     });
 
-    const result = await getTodaysStories();
+    const result = await getAllStories();
     expect(result).toHaveLength(1);
     expect(result[0].isBreaking).toBe(false);
   });
@@ -96,7 +116,7 @@ describe("getTodaysStories", () => {
       });
     }
 
-    const result = await getTodaysStories();
+    const result = await getAllStories();
     const breakingResults = result.filter((s) => s.isBreaking);
     expect(breakingResults).toHaveLength(5);
     expect(breakingResults.map((s) => s.canonicalTitle)).toEqual([

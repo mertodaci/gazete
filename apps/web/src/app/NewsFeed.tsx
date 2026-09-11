@@ -88,9 +88,9 @@ export function NewsFeed({ stories }: { stories: PublicStory[] }) {
   if (stories.length === 0) {
     return (
       <section className={styles.feed}>
-        <h2 className={styles.feedTitle}>Bugünün haberleri</h2>
+        <h2 className={styles.feedTitle}>Haberler</h2>
         <p className={styles.empty}>
-          Bugün için özetlenmiş haber henüz yok — yapay zekâ üzerinde çalışıyor, birazdan burada olacak.
+          Henüz özetlenmiş haber yok — yapay zekâ üzerinde çalışıyor, birazdan burada olacak.
         </p>
       </section>
     );
@@ -105,7 +105,8 @@ export function NewsFeed({ stories }: { stories: PublicStory[] }) {
 
   return (
     <section className={styles.feed}>
-      <h2 className={styles.feedTitle}>Bugünün haberleri</h2>
+      <h2 className={styles.feedTitle}>Haberler</h2>
+      <p className={styles.feedSubtitle}>En yeni haberler en üstte.</p>
 
       <nav className={styles.categoryNav} aria-label="Kategoriler">
         {breakingStories.length > 0 && (
