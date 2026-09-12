@@ -22,50 +22,12 @@
   cursor: pointer;
 }
 
-/* Two side gutters sized with the identical minmax(0, 1fr) so they are
-   always equal width — the news column stays exactly where it sat before
-   the sidebar existed (centered on the full page, not on page-minus-sidebar).
-   The sidebar lives in the right gutter and simply shrinks with it instead
-   of ever pushing the news column off-center. */
-.layout {
+.page {
   min-height: 100vh;
-  width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) min(64rem, 100%) minmax(0, 1fr);
-  column-gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 2.5rem 1.5rem 5rem;
-}
-
-.main {
-  grid-column: 2;
-  min-width: 0;
-}
-
-.sidebar {
-  grid-column: 3;
-  min-width: 0;
-  max-width: 17rem;
-  align-self: start;
-  position: sticky;
-  top: 5.5rem;
-}
-
-/* Below this, even a fully shrunk sidebar gutter is too cramped to read —
-   drop back to the original single-column layout with the widget stacked
-   under the news feed. 90rem leaves common 1280-1440px laptop widths in the
-   stacked layout and only shows the sidebar on genuinely spacious screens. */
-@media (max-width: 90rem) {
-  .layout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .sidebar {
-    width: 100%;
-    max-width: 64rem;
-    position: static;
-  }
 }
 
 .overlay {

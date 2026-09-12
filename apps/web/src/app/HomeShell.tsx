@@ -7,7 +7,6 @@ import { Logo } from "./Logo";
 import { SubscribeForm } from "./SubscribeForm";
 import { NewsFeed } from "./NewsFeed";
 import { MarketTicker } from "./MarketTicker";
-import { MarketWidget } from "./MarketWidget";
 import type { PublicStory } from "../lib/publicStories";
 import type { MarketSnapshot } from "../lib/marketData";
 
@@ -63,14 +62,9 @@ export function HomeShell({
 
       <MarketTicker snapshot={marketSnapshot} />
 
-      <div className={styles.layout}>
-        <main className={styles.main}>
-          <NewsFeed stories={stories} />
-        </main>
-        <aside className={styles.sidebar}>
-          <MarketWidget snapshot={marketSnapshot} />
-        </aside>
-      </div>
+      <main className={styles.page}>
+        <NewsFeed stories={stories} />
+      </main>
 
       {showModal && (
         <div className={styles.overlay} onClick={close}>
