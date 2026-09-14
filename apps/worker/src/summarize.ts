@@ -67,7 +67,10 @@ async function requestSummary(title: string, description: string | null): Promis
 Alanlar:
 - "summary": Haberin 2-3 cümlelik tarafsız bir Türkçe özeti.
 - "category": Haberin ait olduğu kategori. Şu değerlerden SADECE biri olmalı: "ekonomi", "teknoloji", "spor", "dunya", "saglik", "kultur_sanat". Bu kategorilerden hiçbiri gerçekten uymuyorsa (örneğin genel gündem, suç, mahkeme, magazin haberi ise) "gundem" değerini kullan.
-- "isBreaking": Bu haber büyük, kesin ve yüksek etkili bir gelişme mi? SADECE şu türde haberler için true yaz: tanınmış bir kişinin ölümü, büyük bir doğal afet veya kaza, önemli bir piyasa şoku, üst düzey bir spor müsabakasında büyük bir sonuç, önemli bir savaş/politika gelişmesi. Rutin açıklamalar, ön izlemeler, olağan günlük gelişmeler için false yaz. Çoğu haber false olmalı.
+- "isBreaking": Bu haber Türkiye için gerçekten son dakika niteliğinde mi? SADECE aşağıdaki İKİ şart da doğruysa true yaz:
+  1. Haber Türkiye'yi doğrudan ilgilendiriyor (Türkiye'de yaşanan bir olay, Türkiye'yi doğrudan etkileyen bir gelişme) VEYA tüm dünyayı sarsacak kadar büyük, küresel çaplı bir olay (savaş ilanı, büyük bir doğal afet, önemli bir dünya liderinin ölümü gibi).
+  2. Gerçekten büyük, kesin ve yüksek etkili bir gelişme: tanınmış bir kişinin ölümü, büyük bir doğal afet veya kaza, önemli bir ekonomik şok (örn. TCMB faiz kararı), üst düzey bir spor müsabakasında büyük bir sonuç, kritik bir savaş/darbe/seçim sonucu gelişmesi.
+  Şunlar SON DAKİKA DEĞİLDİR, bunlar için false yaz: Türkiye ile doğrudan ilgisi olmayan yabancı bir şirketin/kurumun mali sıkıntısı (örneğin "ABD'de bir fuar merkezi iflasın eşiğinde" gibi bir haber son dakika değildir), rutin açıklamalar, ön izlemeler, analiz/yorum haberleri, sıradan yerel yabancı olaylar. Çoğu haber false olmalı, son dakika olarak işaretlenen haberler günde birkaç taneyi geçmemeli.
 
 Başlık: ${title}
 Açıklama: ${description ?? "(yok)"}
