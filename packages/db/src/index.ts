@@ -18,6 +18,14 @@ export const MAX_INTEREST_STORIES = 6;
 // after seeing real subscriber text against real story embeddings.
 export const INTEREST_SIMILARITY_THRESHOLD = 0.7;
 
+// Cross-source duplicate detection (apps/worker/src/processArticles.ts) — a
+// much higher bar than interest matching, since this decides "is this
+// actually the same real-world event", not "is this merely related". Word-
+// overlap similarity alone missed same-event articles that different outlets
+// phrased very differently; this is a starting point, not calibrated —
+// expect to tune it against real near-duplicate and non-duplicate pairs.
+export const DEDUP_SIMILARITY_THRESHOLD = 0.85;
+
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();

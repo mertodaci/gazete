@@ -4,9 +4,12 @@ import { prisma } from "@gazete/db";
 vi.mock("./summarize", () => ({
   summarizeArticle: vi.fn().mockResolvedValue({ summary: "Bu bir test özetidir.", category: "ekonomi", isBreaking: false })
 }));
-// Avoids a real Voyage call in tests — deterministic, and no test here needs
-// to exercise the real embedding logic.
-vi.mock("./embeddings", () => ({ getEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]) }));
+// Avoids a real Voyage call in tests — deterministic — while keeping the
+// real cosineSimilarity so the semantic-dedup tests exercise real math.
+vi.mock("./embeddings", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./embeddings")>();
+  return { ...actual, getEmbedding: vi.fn() };
+});
 
 import { processNewArticles } from "./processArticles";
 import { summarizeArticle } from "./summarize";
@@ -123,5 +126,39 @@ describe("processNewArticles", () => {
 
     const story = await prisma.story.findFirst({ where: { canonicalTitle: article.title } });
     expect(story?.interestEmbedding).toEqual([]);
+  });
+
+  it("merges two very differently-worded articles about the same event via semantic similarity", async () => {
+    // Below the 0.5 Jaccard threshold on title words alone, but the same
+    // real-world event — the case that motivated adding embedding-based
+    // dedup (word overlap alone missed exactly this kind of pair).
+    vi.mocked(getEmbedding).mockResolvedValue([1, 0]);
+    await makeArticle({}, "Adalet Bakanı'ndan 41 şüpheliye gözaltı açıklaması");
+    await processNewArticles();
+    vi.mocked(summarizeArticle).mockClear();
+
+    const second = await makeArticle({}, "Tarladan markete fiyat oyununa dev operasyon");
+    await processNewArticles();
+
+    const stories = await prisma.story.findMany({ include: { storyArticles: true } });
+    expect(stories).toHaveLength(1);
+    expect(stories[0].storyArticles.map((sa) => sa.articleId)).toContain(second.id);
+    expect(summarizeArticle).not.toHaveBeenCalled();
+  });
+
+  it("keeps two unrelated articles as separate stories when neither title nor embedding match", async () => {
+    vi.mocked(getEmbedding).mockImplementation(async (text: string) =>
+      text.includes("Deprem") ? [1, 0] : [0, 1]
+    );
+    await makeArticle({}, "İzmir'de Deprem Oldu");
+    await processNewArticles();
+    vi.mocked(summarizeArticle).mockClear();
+
+    await makeArticle({}, "Borsa Rekor Kırdı");
+    await processNewArticles();
+
+    const stories = await prisma.story.findMany();
+    expect(stories).toHaveLength(2);
+    expect(summarizeArticle).toHaveBeenCalledTimes(1);
   });
 });

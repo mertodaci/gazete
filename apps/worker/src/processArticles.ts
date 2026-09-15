@@ -1,7 +1,7 @@
-import { prisma } from "@gazete/db";
+import { prisma, DEDUP_SIMILARITY_THRESHOLD } from "@gazete/db";
 import { titleSimilarity } from "./similarity";
 import { summarizeArticle } from "./summarize";
-import { getEmbedding } from "./embeddings";
+import { getEmbedding, cosineSimilarity } from "./embeddings";
 import { istanbulToday } from "./istanbulDate";
 
 const SIMILARITY_THRESHOLD = 0.5;
@@ -24,14 +24,25 @@ export async function processNewArticles(): Promise<void> {
       // Cross-category on purpose: the same real-world event can be covered by
       // sources we've bucketed into different categories (a general feed and a
       // topic-specific one), and it's still one story regardless of who wrote
-      // about it. Matching happens on title alone, before any Claude call, so
-      // cross-source duplicate coverage still costs zero extra API calls.
+      // about it.
       const todaysStories = await prisma.story.findMany({
         where: { digestDate: { gte: istanbulToday() } }
       });
 
+      // Word-overlap similarity alone missed same-event articles that
+      // different outlets phrased very differently (e.g. one led with the
+      // minister's name, another with "dev operasyon") — semantic similarity
+      // via embeddings catches what token overlap can't. This costs one
+      // Voyage call per article regardless of outcome (Voyage's embeddings
+      // are priced far below Claude's per-token cost, effectively free at
+      // this project's volume), unlike the free title-only check above.
+      const embedding = await getEmbedding(article.title);
       const match = todaysStories.find(
-        (story) => titleSimilarity(story.canonicalTitle, article.title) >= SIMILARITY_THRESHOLD
+        (story) =>
+          titleSimilarity(story.canonicalTitle, article.title) >= SIMILARITY_THRESHOLD ||
+          (embedding &&
+            story.interestEmbedding.length > 0 &&
+            cosineSimilarity(embedding, story.interestEmbedding) >= DEDUP_SIMILARITY_THRESHOLD)
       );
 
       if (match) {
@@ -40,11 +51,13 @@ export async function processNewArticles(): Promise<void> {
       }
 
       const result = await summarizeArticle(article.title, article.rawDescription);
-      // Best-effort: a failed embedding call just means this story is never
-      // eligible for personalized ("Senin İçin") matching — it must not block
-      // story creation, which is why this isn't inside the same try/catch
-      // scope as a hard requirement.
-      const embedding = await getEmbedding(`${article.title}\n${result.summary}`);
+      // Reuses the title embedding already computed above for the dedup
+      // check — no second Voyage call needed just because this article
+      // turned out not to be a duplicate. A failed embedding call just means
+      // this story is never eligible for personalized ("Senin İçin")
+      // matching or future semantic dedup — it must not block story
+      // creation, which is why this isn't inside the same try/catch scope
+      // as a hard requirement.
       await prisma.story.create({
         data: {
           category: result.category,
