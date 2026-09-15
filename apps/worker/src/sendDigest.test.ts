@@ -161,4 +161,32 @@ describe("sendDailyDigest", () => {
     });
     expect(record?.status).toBe("sent");
   });
+
+  it("sends a 'Senin İçin' section with the subscriber's own interest text for a matched story", async () => {
+    const sub = await prisma.subscriber.create({
+      data: {
+        email: "interest@example.com",
+        preferencesToken: generateTestToken(),
+        interestText: "İzmir haberleri",
+        interestEmbedding: [1, 0],
+        categories: { create: [{ category: "spor" }] }
+      }
+    });
+    await prisma.story.create({
+      data: {
+        category: "gundem",
+        canonicalTitle: "İzmir'de yerel haber",
+        aiSummaryTr: "Özet.",
+        interestEmbedding: [1, 0],
+        digestDate: today()
+      }
+    });
+
+    await sendDailyDigest();
+
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sendMock.mock.calls[0][0].to).toBe("interest@example.com");
+    expect(sendMock.mock.calls[0][0].html).toContain("Senin İçin");
+    expect(sendMock.mock.calls[0][0].html).toContain("İzmir haberleri");
+  });
 });

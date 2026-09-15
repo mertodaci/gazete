@@ -3,6 +3,7 @@ import { generateToken } from "@/lib/token";
 import { isHoneypotTripped, checkRateLimit } from "@/lib/rateLimit";
 import { sendWelcomeEmail } from "@/lib/email";
 import { SUBSCRIBER_SELECTABLE_CATEGORIES } from "@/lib/categories";
+import { processInterestText } from "@/lib/interest";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,10 +33,11 @@ function clientIp(request: Request): string {
 export async function POST(request: Request): Promise<Response> {
   const ip = clientIp(request);
   const body = await request.json();
-  const { email, categories, honeypot } = body as {
+  const { email, categories, honeypot, interestText } = body as {
     email?: string;
     categories?: string[];
     honeypot?: string;
+    interestText?: string;
   };
 
   if (isHoneypotTripped(honeypot)) {
@@ -59,6 +61,10 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "invalid_categories" }, { status: 400 });
   }
 
+  // Moderation + embedding run once here, before either branch below, so a
+  // rejected/failed submission never touches the database either way.
+  const interest = await processInterestText(interestText);
+
   const existing = await prisma.subscriber.findUnique({ where: { email } });
 
   if (existing) {
@@ -68,8 +74,15 @@ export async function POST(request: Request): Promise<Response> {
     });
     // Re-subscribing must reactivate someone who previously unsubscribed (or
     // was unsubscribed by a hard bounce) — otherwise they could never come back.
-    await prisma.subscriber.update({ where: { id: existing.id }, data: { status: "active" } });
-    return Response.json({ ok: true }, { status: 201 });
+    await prisma.subscriber.update({
+      where: { id: existing.id },
+      data: {
+        status: "active",
+        interestText: interest.interestText,
+        interestEmbedding: interest.interestEmbedding
+      }
+    });
+    return Response.json({ ok: true, interestRejected: interest.rejected }, { status: 201 });
   }
 
   const preferencesToken = generateToken();
@@ -77,6 +90,8 @@ export async function POST(request: Request): Promise<Response> {
     data: {
       email,
       preferencesToken,
+      interestText: interest.interestText,
+      interestEmbedding: interest.interestEmbedding,
       categories: {
         create: categories.map((category) => ({ category: category as Category }))
       }
@@ -85,5 +100,5 @@ export async function POST(request: Request): Promise<Response> {
 
   await sendWelcomeEmail(subscriber.email, preferencesToken);
 
-  return Response.json({ ok: true }, { status: 201 });
+  return Response.json({ ok: true, interestRejected: interest.rejected }, { status: 201 });
 }

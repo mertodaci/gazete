@@ -5,6 +5,11 @@ import { POST } from "./route";
 
 describe("POST /api/unsubscribe", () => {
   beforeEach(async () => {
+    // digestSend must go first — it has a FK on subscriber, and other test
+    // files (sendDigest.test.ts) can leave rows here from a real (non-dry-run)
+    // send whose subscriber this file's own cleanup would otherwise conflict
+    // with when deleting subscribers below.
+    await prisma.digestSend.deleteMany({});
     await prisma.subscriberCategory.deleteMany({});
     await prisma.subscriber.deleteMany({});
   });

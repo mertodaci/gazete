@@ -18,6 +18,7 @@ describe("renderDigestHtml", () => {
       canonicalTitle: "Merkez Bankası faiz kararı",
       aiSummaryTr: "Merkez Bankası faizi sabit tuttu.",
       isBreaking: false,
+      isPersonalized: false,
       sources: [{ name: "AA", url: "https://example.com/a" }, { name: "NTV", url: "https://example.com/b" }]
     }
   ];
@@ -43,6 +44,7 @@ describe("renderDigestHtml", () => {
       canonicalTitle: `Haber ${i}`,
       aiSummaryTr: `Özet ${i}.`,
       isBreaking: false,
+      isPersonalized: false,
       sources: []
     }));
     const html = renderDigestHtml(many, "tok123", "https://gazete.example.com");
@@ -63,6 +65,7 @@ describe("renderDigestHtml", () => {
         canonicalTitle: "Büyük Final Sonucu",
         aiSummaryTr: "Şampiyon belli oldu.",
         isBreaking: true,
+        isPersonalized: false,
         sources: []
       },
       {
@@ -71,6 +74,7 @@ describe("renderDigestHtml", () => {
         canonicalTitle: "Rutin Ekonomi Haberi",
         aiSummaryTr: "Sıradan bir gelişme.",
         isBreaking: false,
+        isPersonalized: false,
         sources: []
       }
     ];
@@ -97,6 +101,7 @@ describe("renderDigestHtml", () => {
         canonicalTitle: "Başlık",
         aiSummaryTr: "Özet.",
         isBreaking: false,
+        isPersonalized: false,
         sources: [{ name: "Kötü Kaynak", url: 'https://example.com/a" onmouseover="alert(1)' }]
       }
     ];
@@ -119,6 +124,7 @@ describe("renderDigestHtml", () => {
         canonicalTitle: "Başlık",
         aiSummaryTr: "Özet.",
         isBreaking: false,
+        isPersonalized: false,
         sources: [{ name: "Şüpheli", url: "javascript:alert(1)" }]
       }
     ];
@@ -136,6 +142,7 @@ describe("renderDigestHtml", () => {
         canonicalTitle: "<img src=x onerror=alert(1)>",
         aiSummaryTr: "<script>alert(1)</script>",
         isBreaking: false,
+        isPersonalized: false,
         sources: []
       }
     ];
@@ -169,6 +176,7 @@ describe("renderDigestHtml", () => {
         canonicalTitle: "Maç Sonucu",
         aiSummaryTr: "Özet.",
         isBreaking: false,
+        isPersonalized: false,
         sources: []
       }
     ];
@@ -199,5 +207,63 @@ describe("renderDigestHtml", () => {
   it("does not show the closing-values table when the market snapshot is unavailable", () => {
     const html = renderDigestHtml(stories, "tok123", "https://gazete.example.com", new Date(), null, true);
     expect(html).not.toContain("SON KAPANIŞ");
+  });
+
+  it("renders a 'Senin İçin' section with the subscriber's own interest text, before the category cards", () => {
+    const withPersonalized: StoryWithSources[] = [
+      {
+        id: "p1",
+        category: "gundem",
+        canonicalTitle: "İzmir'de yerel haber",
+        aiSummaryTr: "Özet.",
+        isBreaking: false,
+        isPersonalized: true,
+        sources: []
+      },
+      {
+        id: "n1",
+        category: "ekonomi",
+        canonicalTitle: "Rutin Ekonomi Haberi",
+        aiSummaryTr: "Sıradan bir gelişme.",
+        isBreaking: false,
+        isPersonalized: false,
+        sources: []
+      }
+    ];
+    const html = renderDigestHtml(
+      withPersonalized,
+      "tok123",
+      "https://gazete.example.com",
+      new Date(),
+      null,
+      false,
+      "deprem, yapay zeka, İzmir haberleri"
+    );
+
+    expect(html).toContain("Senin İçin");
+    expect(html).toContain("deprem, yapay zeka, İzmir haberleri");
+    expect(html).toContain("İzmir'de yerel haber");
+    expect(html.indexOf("Senin İçin")).toBeLessThan(html.indexOf("Rutin Ekonomi Haberi"));
+  });
+
+  it("does not render a 'Senin İçin' section when there are no personalized stories", () => {
+    const html = renderDigestHtml(stories, "tok123", "https://gazete.example.com", new Date(), null, false, "deprem");
+    expect(html).not.toContain("Senin İçin");
+  });
+
+  it("does not render a 'Senin İçin' section when interestText is null, even with personalized stories", () => {
+    const withPersonalized: StoryWithSources[] = [
+      {
+        id: "p1",
+        category: "gundem",
+        canonicalTitle: "İzmir'de yerel haber",
+        aiSummaryTr: "Özet.",
+        isBreaking: false,
+        isPersonalized: true,
+        sources: []
+      }
+    ];
+    const html = renderDigestHtml(withPersonalized, "tok123", "https://gazete.example.com", new Date(), null, false, null);
+    expect(html).not.toContain("Senin İçin");
   });
 });

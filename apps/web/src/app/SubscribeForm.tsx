@@ -3,12 +3,15 @@
 import { useState } from "react";
 import styles from "./SubscribeForm.module.css";
 import { SUBSCRIBER_CATEGORY_OPTIONS } from "../lib/categories";
+import { MAX_INTEREST_TEXT_LENGTH } from "@gazete/db";
 
 export function SubscribeForm() {
   const [email, setEmail] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [interestText, setInterestText] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error" | "rate_limited">("idle");
+  const [interestRejected, setInterestRejected] = useState(false);
 
   function toggle(value: string) {
     setSelected((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
@@ -20,9 +23,11 @@ export function SubscribeForm() {
     const res = await fetch("/api/subscribe", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, categories: selected, honeypot })
+      body: JSON.stringify({ email, categories: selected, honeypot, interestText })
     });
     if (res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setInterestRejected(Boolean(json.interestRejected));
       setStatus("done");
     } else if (res.status === 429) {
       setStatus("rate_limited");
@@ -35,6 +40,13 @@ export function SubscribeForm() {
     return (
       <p className={styles.confirmation}>
         Teşekkürler! Yarın sabah 09.00&apos;dan itibaren bültenini almaya başlayacaksın.
+        {interestRejected && (
+          <>
+            {" "}
+            (İlgi alanı olarak yazdığın metin kabul edilemedi, kategorilerin yine de kaydedildi — tercihler
+            sayfasından tekrar deneyebilirsin.)
+          </>
+        )}
       </p>
     );
   }
@@ -72,6 +84,22 @@ export function SubscribeForm() {
           ))}
         </div>
       </fieldset>
+
+      <div className={styles.field}>
+        <label htmlFor="interestText">Kendi ilgi alanların (isteğe bağlı)</label>
+        <textarea
+          id="interestText"
+          className={styles.interestInput}
+          placeholder="örn. yapay zeka, deprem, İzmir haberleri"
+          rows={2}
+          maxLength={MAX_INTEREST_TEXT_LENGTH}
+          value={interestText}
+          onChange={(e) => setInterestText(e.target.value)}
+        />
+        <span className={styles.interestHint}>
+          {interestText.length}/{MAX_INTEREST_TEXT_LENGTH}
+        </span>
+      </div>
 
       {/* honeypot: a genuinely hidden input (type="hidden") that no browser
           autofill or password manager will ever populate, unlike a

@@ -35,6 +35,31 @@
   color: #9aa2ac;
 }
 
+.interestInput {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 0.6rem;
+  background: var(--bg);
+  padding: 0.65rem 0.85rem;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.interestInput::placeholder {
+  color: #9aa2ac;
+}
+
+.interestHint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
 .chipsLegend {
   font-size: 0.8125rem;
   font-weight: 500;

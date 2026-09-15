@@ -4,9 +4,13 @@ import { prisma } from "@gazete/db";
 vi.mock("./summarize", () => ({
   summarizeArticle: vi.fn().mockResolvedValue({ summary: "Bu bir test özetidir.", category: "ekonomi", isBreaking: false })
 }));
+// Avoids a real Voyage call in tests — deterministic, and no test here needs
+// to exercise the real embedding logic.
+vi.mock("./embeddings", () => ({ getEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]) }));
 
 import { processNewArticles } from "./processArticles";
 import { summarizeArticle } from "./summarize";
+import { getEmbedding } from "./embeddings";
 
 async function makeArticle(sourceOverrides: Partial<{ category: any }> = {}, title = "Test Başlık") {
   const source = await prisma.source.create({
@@ -26,6 +30,8 @@ describe("processNewArticles", () => {
   beforeEach(async () => {
     vi.mocked(summarizeArticle).mockClear();
     vi.mocked(summarizeArticle).mockResolvedValue({ summary: "Bu bir test özetidir.", category: "ekonomi", isBreaking: false });
+    vi.mocked(getEmbedding).mockClear();
+    vi.mocked(getEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
     await prisma.storyArticle.deleteMany({});
     await prisma.story.deleteMany({});
     await prisma.article.deleteMany({});
@@ -100,5 +106,22 @@ describe("processNewArticles", () => {
 
     const story = await prisma.story.findFirst({ where: { canonicalTitle: article.title } });
     expect(story?.isBreaking).toBe(true);
+  });
+
+  it("stores the computed interest embedding on a new story", async () => {
+    const article = await makeArticle({}, "Embedding Testi Haberi");
+    await processNewArticles();
+
+    const story = await prisma.story.findFirst({ where: { canonicalTitle: article.title } });
+    expect(story?.interestEmbedding).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  it("still creates the story with an empty embedding when the embedding call fails", async () => {
+    vi.mocked(getEmbedding).mockResolvedValueOnce(null);
+    const article = await makeArticle({}, "Embedding Hatası Haberi");
+    await processNewArticles();
+
+    const story = await prisma.story.findFirst({ where: { canonicalTitle: article.title } });
+    expect(story?.interestEmbedding).toEqual([]);
   });
 });

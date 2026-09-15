@@ -61,6 +61,10 @@ model Story {
   aiSummaryTr        String?        @map("ai_summary_tr")
   isBreaking         Boolean        @default(false) @map("is_breaking")
   breakingAlertSentAt DateTime?     @map("breaking_alert_sent_at")
+  // Null until the Voyage embedding call succeeds — a failed/pending call
+  // just excludes the story from personalized ("Senin İçin") matching that
+  // day rather than blocking story creation.
+  interestEmbedding  Float[]        @map("interest_embedding")
   digestDate         DateTime       @map("digest_date") @db.Date
   createdAt          DateTime       @default(now()) @map("created_at")
   storyArticles      StoryArticle[]
@@ -79,13 +83,19 @@ model StoryArticle {
 }
 
 model Subscriber {
-  id               String               @id @default(uuid())
-  email            String               @unique
-  status           SubscriberStatus     @default(active)
-  preferencesToken String               @unique @map("preferences_token")
-  createdAt        DateTime             @default(now()) @map("created_at")
-  categories       SubscriberCategory[]
-  digestSends      DigestSend[]
+  id                String               @id @default(uuid())
+  email             String               @unique
+  status            SubscriberStatus     @default(active)
+  preferencesToken  String               @unique @map("preferences_token")
+  // Free-text personal interests ("deprem, yapay zeka, İzmir haberleri"),
+  // alongside — not instead of — the fixed categories below. Null when the
+  // subscriber hasn't set one, or when a submitted one failed moderation.
+  interestText      String?              @map("interest_text")
+  // Empty until interestText is set and its Voyage embedding computed.
+  interestEmbedding Float[]              @map("interest_embedding")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  categories        SubscriberCategory[]
+  digestSends       DigestSend[]
 
   @@map("subscribers")
 }

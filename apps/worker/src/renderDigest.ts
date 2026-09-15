@@ -213,15 +213,27 @@ function renderCategoryCard(
   `;
 }
 
+// A short subtitle under the "Senin İçin" heading echoing the subscriber's
+// own words back to them — this is the whole point of the section (an
+// explicit, transparent match, not an opaque algorithm), and costs nothing
+// extra since the text is already moderated before it's ever stored.
+function renderInterestSubtitle(interestText: string): string {
+  return `<p style="margin:0 0 14px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;font-style:italic;color:#5b6472;">"${escapeHtml(
+    interestText
+  )}" ile ilgili haberler</p>`;
+}
+
 export function renderDigestHtml(
   stories: StoryWithSources[],
   preferencesToken: string,
   baseUrl: string,
   digestDate: Date = new Date(),
   marketSnapshot: MarketSnapshot | null = null,
-  wantsEkonomi: boolean = false
+  wantsEkonomi: boolean = false,
+  interestText: string | null = null
 ): string {
   const breakingStories = stories.filter((s) => s.isBreaking);
+  const personalizedStories = stories.filter((s) => s.isPersonalized);
 
   // The Ekonomi card stays visible for a subscriber who selected it even on
   // a day with zero Ekonomi stories, since it also carries the closing-values
@@ -237,6 +249,16 @@ export function renderDigestHtml(
   const breakingCardHtml =
     breakingStories.length > 0
       ? renderCategoryCard(breakingStories, baseUrl, { label: "Son Dakika", anchorId: "son-dakika" }) + spacer(16)
+      : "";
+
+  const personalizedCardHtml =
+    personalizedStories.length > 0 && interestText
+      ? renderCategoryCard(
+          personalizedStories,
+          baseUrl,
+          { label: "Senin İçin", anchorId: "senin-icin" },
+          renderInterestSubtitle(interestText)
+        ) + spacer(16)
       : "";
 
   const cardsHtml =
@@ -306,6 +328,7 @@ export function renderDigestHtml(
               ${spacer(16)}
 
               ${breakingCardHtml}
+              ${personalizedCardHtml}
               ${cardsHtml}
 
               <table role="presentation" width="${CARD_WIDTH}" cellpadding="0" cellspacing="0" style="max-width:${CARD_WIDTH}px;width:100%;">

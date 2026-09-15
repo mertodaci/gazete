@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import styles from "../formPage.module.css";
 import { SUBSCRIBER_CATEGORY_OPTIONS } from "../../lib/categories";
+import { MAX_INTEREST_TEXT_LENGTH } from "@gazete/db";
 
 export function PreferencesForm({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [inactive, setInactive] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [interestText, setInterestText] = useState("");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(false);
+  const [interestRejected, setInterestRejected] = useState(false);
 
   const SELECTABLE_VALUES = SUBSCRIBER_CATEGORY_OPTIONS.map((c) => c.value as string);
 
@@ -33,6 +36,7 @@ export function PreferencesForm({ token }: { token: string }) {
         setSelected(
           (json.categories as string[]).filter((c) => SELECTABLE_VALUES.includes(c))
         );
+        setInterestText(json.interestText ?? "");
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,8 +53,12 @@ export function PreferencesForm({ token }: { token: string }) {
     const res = await fetch("/api/preferences", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token, categories: selected })
+      body: JSON.stringify({ token, categories: selected, interestText })
     });
+    if (res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setInterestRejected(Boolean(json.interestRejected));
+    }
     setSaved(res.ok);
     setError(!res.ok);
   }
@@ -80,10 +88,34 @@ export function PreferencesForm({ token }: { token: string }) {
           ))}
         </div>
       </fieldset>
+
+      <div className={styles.field}>
+        <label htmlFor="interestText">Kendi ilgi alanların (isteğe bağlı)</label>
+        <textarea
+          id="interestText"
+          className={styles.interestInput}
+          placeholder="örn. yapay zeka, deprem, İzmir haberleri"
+          rows={2}
+          maxLength={MAX_INTEREST_TEXT_LENGTH}
+          value={interestText}
+          onChange={(e) => {
+            setInterestText(e.target.value);
+            setSaved(false);
+            setError(false);
+          }}
+        />
+        <span className={styles.interestHint}>
+          {interestText.length}/{MAX_INTEREST_TEXT_LENGTH}
+        </span>
+      </div>
+
       <button type="submit" className={styles.submit} disabled={selected.length === 0}>
         Kaydet
       </button>
-      {saved && <p className={styles.saved}>Kaydedildi.</p>}
+      {saved && !interestRejected && <p className={styles.saved}>Kaydedildi.</p>}
+      {saved && interestRejected && (
+        <p className={styles.error}>Kategoriler kaydedildi, ancak ilgi alanı metni kabul edilemedi.</p>
+      )}
       {error && <p className={styles.error}>Bir şeyler ters gitti, tekrar dener misin?</p>}
     </form>
   );

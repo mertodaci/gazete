@@ -1,8 +1,15 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { prisma } from "@gazete/db";
+import { prisma, MAX_INTEREST_STORIES } from "@gazete/db";
 import { generateTestToken } from "./testUtils";
 import { istanbulToday } from "./istanbulDate";
 import { getStoriesForSubscriber, subscriberSelectedCategories } from "./digestQuery";
+
+// Simple, exact vectors rather than real embeddings — [1, 0] vs [1, 0] gives
+// cosine similarity 1 (an obvious match), [1, 0] vs [0, 1] gives 0 (an
+// obvious non-match) — no need for real embedding values to exercise the
+// threshold logic.
+const MATCHING_VECTOR = [1, 0];
+const NON_MATCHING_VECTOR = [0, 1];
 
 // Mirrors the Istanbul-aware date logic the code under test uses (istanbulDate.ts).
 const today = istanbulToday;
@@ -149,5 +156,128 @@ describe("getStoriesForSubscriber", () => {
       "Son Dakika 3",
       "Son Dakika 4"
     ]);
+  });
+
+  it("matches a story outside the subscriber's selected categories via the interest embedding", async () => {
+    const subscriber = await prisma.subscriber.create({
+      data: {
+        email: "interest@example.com",
+        preferencesToken: generateTestToken(),
+        interestEmbedding: MATCHING_VECTOR,
+        categories: { create: [{ category: "spor" }] }
+      }
+    });
+    // "gundem" is invisible/unselectable as a fixed category — this is
+    // exactly the case a free-text interest is meant to reach (e.g. a niche
+    // local story that fits no real topic).
+    const match = await prisma.story.create({
+      data: {
+        category: "gundem",
+        canonicalTitle: "İzmir'de yerel haber",
+        aiSummaryTr: "Özet.",
+        interestEmbedding: MATCHING_VECTOR,
+        digestDate: today()
+      }
+    });
+
+    const result = await getStoriesForSubscriber(subscriber.id, today());
+    expect(result.map((s) => s.id)).toEqual([match.id]);
+    expect(result[0].isPersonalized).toBe(true);
+  });
+
+  it("does not personalize a story below the similarity threshold", async () => {
+    const subscriber = await prisma.subscriber.create({
+      data: {
+        email: "no-match@example.com",
+        preferencesToken: generateTestToken(),
+        interestEmbedding: MATCHING_VECTOR,
+        categories: { create: [{ category: "spor" }] }
+      }
+    });
+    await prisma.story.create({
+      data: {
+        category: "gundem",
+        canonicalTitle: "Alakasız haber",
+        aiSummaryTr: "Özet.",
+        interestEmbedding: NON_MATCHING_VECTOR,
+        digestDate: today()
+      }
+    });
+
+    const result = await getStoriesForSubscriber(subscriber.id, today());
+    expect(result).toEqual([]);
+  });
+
+  it("does not double-count a story that already matched the subscriber's fixed category selection", async () => {
+    const subscriber = await prisma.subscriber.create({
+      data: {
+        email: "already-included@example.com",
+        preferencesToken: generateTestToken(),
+        interestEmbedding: MATCHING_VECTOR,
+        categories: { create: [{ category: "ekonomi" }] }
+      }
+    });
+    await prisma.story.create({
+      data: {
+        category: "ekonomi",
+        canonicalTitle: "Zaten gelen haber",
+        aiSummaryTr: "Özet.",
+        interestEmbedding: MATCHING_VECTOR,
+        digestDate: today()
+      }
+    });
+
+    const result = await getStoriesForSubscriber(subscriber.id, today());
+    // Present exactly once (via the category match), not flagged as
+    // personalized — showing it again in "Senin İçin" would be redundant.
+    expect(result).toHaveLength(1);
+    expect(result[0].isPersonalized).toBe(false);
+  });
+
+  it("caps personalized matches at MAX_INTEREST_STORIES", async () => {
+    const subscriber = await prisma.subscriber.create({
+      data: {
+        email: "many-interest@example.com",
+        preferencesToken: generateTestToken(),
+        interestEmbedding: MATCHING_VECTOR,
+        categories: { create: [{ category: "spor" }] }
+      }
+    });
+    for (let i = 0; i < MAX_INTEREST_STORIES + 2; i++) {
+      await prisma.story.create({
+        data: {
+          category: "gundem",
+          canonicalTitle: `İlgili Haber ${i}`,
+          aiSummaryTr: "Özet.",
+          interestEmbedding: MATCHING_VECTOR,
+          digestDate: today()
+        }
+      });
+    }
+
+    const result = await getStoriesForSubscriber(subscriber.id, today());
+    expect(result.filter((s) => s.isPersonalized)).toHaveLength(MAX_INTEREST_STORIES);
+  });
+
+  it("gives a subscriber with no interest embedding no personalized stories, even across all categories", async () => {
+    const subscriber = await prisma.subscriber.create({
+      data: {
+        email: "no-interest@example.com",
+        preferencesToken: generateTestToken(),
+        categories: { create: [{ category: "spor" }] }
+      }
+    });
+    await prisma.story.create({
+      data: {
+        category: "gundem",
+        canonicalTitle: "Herhangi bir haber",
+        aiSummaryTr: "Özet.",
+        interestEmbedding: MATCHING_VECTOR,
+        digestDate: today()
+      }
+    });
+
+    const result = await getStoriesForSubscriber(subscriber.id, today());
+    expect(result).toEqual([]);
   });
 });

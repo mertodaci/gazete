@@ -36,7 +36,8 @@ export async function sendDailyDigest(options: { dryRun?: boolean } = {}): Promi
       config.baseUrl,
       digestDate,
       marketSnapshot,
-      wantsEkonomi
+      wantsEkonomi,
+      subscriber.interestText
     );
 
     if (options.dryRun) {

@@ -1,6 +1,7 @@
 import { prisma } from "@gazete/db";
 import { titleSimilarity } from "./similarity";
 import { summarizeArticle } from "./summarize";
+import { getEmbedding } from "./embeddings";
 import { istanbulToday } from "./istanbulDate";
 
 const SIMILARITY_THRESHOLD = 0.5;
@@ -39,12 +40,18 @@ export async function processNewArticles(): Promise<void> {
       }
 
       const result = await summarizeArticle(article.title, article.rawDescription);
+      // Best-effort: a failed embedding call just means this story is never
+      // eligible for personalized ("Senin İçin") matching — it must not block
+      // story creation, which is why this isn't inside the same try/catch
+      // scope as a hard requirement.
+      const embedding = await getEmbedding(`${article.title}\n${result.summary}`);
       await prisma.story.create({
         data: {
           category: result.category,
           canonicalTitle: article.title,
           aiSummaryTr: result.summary,
           isBreaking: result.isBreaking,
+          interestEmbedding: embedding ?? [],
           digestDate: istanbulToday(),
           storyArticles: { create: { articleId: article.id } }
         }
