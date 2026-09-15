@@ -10,7 +10,9 @@ export function SubscribeForm() {
   const [selected, setSelected] = useState<string[]>([]);
   const [interestText, setInterestText] = useState("");
   const [honeypot, setHoneypot] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error" | "rate_limited">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "done" | "error" | "rate_limited" | "interest_rejected_and_no_categories"
+  >("idle");
   const [interestRejected, setInterestRejected] = useState(false);
 
   function toggle(value: string) {
@@ -32,7 +34,8 @@ export function SubscribeForm() {
     } else if (res.status === 429) {
       setStatus("rate_limited");
     } else {
-      setStatus("error");
+      const json = await res.json().catch(() => ({}));
+      setStatus(json.error === "interest_rejected_and_no_categories" ? "interest_rejected_and_no_categories" : "error");
     }
   }
 
@@ -85,8 +88,14 @@ export function SubscribeForm() {
         </div>
       </fieldset>
 
-      <div className={styles.field}>
-        <label htmlFor="interestText">Kendi ilgi alanların (isteğe bağlı)</label>
+      <div className={styles.interestBlock}>
+        <label htmlFor="interestText" className={styles.interestLabel}>
+          Sana özel bir haber akışı
+        </label>
+        <p className={styles.interestDescription}>
+          Yukarıdaki kategorilerin ötesinde — istediğin herhangi bir konuyu yaz, yapay zekâmız o konudaki haberleri
+          bulup senin için mail&apos;ine eklesin.
+        </p>
         <textarea
           id="interestText"
           className={styles.interestInput}
@@ -109,12 +118,22 @@ export function SubscribeForm() {
       <input type="hidden" name="company" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
 
 
-      <button type="submit" className={styles.submit} disabled={status === "loading" || selected.length === 0}>
+      <button
+        type="submit"
+        className={styles.submit}
+        disabled={status === "loading" || (selected.length === 0 && interestText.trim().length === 0)}
+      >
         Abone Ol
       </button>
       {status === "error" && <p className={styles.error} role="alert">Bir şeyler ters gitti, tekrar dener misin?</p>}
       {status === "rate_limited" && (
         <p className={styles.error} role="alert">Çok hızlı denedin, birkaç saniye bekleyip tekrar dener misin?</p>
+      )}
+      {status === "interest_rejected_and_no_categories" && (
+        <p className={styles.error} role="alert">
+          Yazdığın ilgi alanı metni kabul edilemedi ve hiç kategori seçmedin — en az bir kategori seç ya da farklı
+          bir ilgi alanı yaz.
+        </p>
       )}
     </form>
   );

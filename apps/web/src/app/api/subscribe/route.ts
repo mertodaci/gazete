@@ -53,24 +53,36 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "invalid_email" }, { status: 400 });
   }
 
-  if (
-    !categories ||
-    categories.length === 0 ||
-    !categories.every((c) => SUBSCRIBER_SELECTABLE_CATEGORIES.includes(c as Category))
-  ) {
+  const hasCategories = Boolean(categories && categories.length > 0);
+  if (hasCategories && !categories!.every((c) => SUBSCRIBER_SELECTABLE_CATEGORIES.includes(c as Category))) {
     return Response.json({ error: "invalid_categories" }, { status: 400 });
+  }
+  // A subscriber can now rely entirely on the free-text interest instead of
+  // the fixed categories — but needs at least one of the two, or there is
+  // nothing to ever send them.
+  if (!hasCategories && !interestText?.trim()) {
+    return Response.json({ error: "missing_categories_or_interest" }, { status: 400 });
   }
 
   // Moderation + embedding run once here, before either branch below, so a
   // rejected/failed submission never touches the database either way.
   const interest = await processInterestText(interestText);
 
+  // The only signal offered was the free text, and it didn't survive
+  // moderation/validation — reject outright rather than silently creating a
+  // subscriber with nothing selected who would never receive anything.
+  if (!hasCategories && !interest.interestText) {
+    return Response.json({ error: "interest_rejected_and_no_categories" }, { status: 400 });
+  }
+
+  const categoryValues = categories ?? [];
+
   const existing = await prisma.subscriber.findUnique({ where: { email } });
 
   if (existing) {
     await prisma.subscriberCategory.deleteMany({ where: { subscriberId: existing.id } });
     await prisma.subscriberCategory.createMany({
-      data: categories.map((category) => ({ subscriberId: existing.id, category: category as Category }))
+      data: categoryValues.map((category) => ({ subscriberId: existing.id, category: category as Category }))
     });
     // Re-subscribing must reactivate someone who previously unsubscribed (or
     // was unsubscribed by a hard bounce) — otherwise they could never come back.
@@ -93,7 +105,7 @@ export async function POST(request: Request): Promise<Response> {
       interestText: interest.interestText,
       interestEmbedding: interest.interestEmbedding,
       categories: {
-        create: categories.map((category) => ({ category: category as Category }))
+        create: categoryValues.map((category) => ({ category: category as Category }))
       }
     }
   });

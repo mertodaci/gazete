@@ -259,6 +259,31 @@ describe("getStoriesForSubscriber", () => {
     expect(result.filter((s) => s.isPersonalized)).toHaveLength(MAX_INTEREST_STORIES);
   });
 
+  it("matches stories for a subscriber with zero fixed categories, relying only on the interest embedding", async () => {
+    const subscriber = await prisma.subscriber.create({
+      data: {
+        email: "interest-only@example.com",
+        preferencesToken: generateTestToken(),
+        interestEmbedding: MATCHING_VECTOR
+        // No `categories` relation created at all — this subscriber picked
+        // no fixed topics, relying entirely on their free-text interest.
+      }
+    });
+    const match = await prisma.story.create({
+      data: {
+        category: "gundem",
+        canonicalTitle: "İlgili haber",
+        aiSummaryTr: "Özet.",
+        interestEmbedding: MATCHING_VECTOR,
+        digestDate: today()
+      }
+    });
+
+    const result = await getStoriesForSubscriber(subscriber.id, today());
+    expect(result.map((s) => s.id)).toEqual([match.id]);
+    expect(result[0].isPersonalized).toBe(true);
+  });
+
   it("gives a subscriber with no interest embedding no personalized stories, even across all categories", async () => {
     const subscriber = await prisma.subscriber.create({
       data: {

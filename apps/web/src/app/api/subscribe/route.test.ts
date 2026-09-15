@@ -161,4 +161,47 @@ describe("POST /api/subscribe", () => {
     expect(sub?.interestText).toBeNull();
     expect(sub?.categories.map((c) => c.category)).toEqual(["spor"]);
   });
+
+  it("creates a subscriber with only a free-text interest and no fixed categories", async () => {
+    vi.mocked(processInterestText).mockResolvedValue({
+      interestText: "deprem, yapay zeka",
+      interestEmbedding: [0.1, 0.2, 0.3],
+      rejected: false
+    });
+    const res = await POST(
+      makeRequest(
+        { email: "interest-only@example.com", categories: [], interestText: "deprem, yapay zeka" },
+        "14.14.14.14"
+      )
+    );
+    expect(res.status).toBe(201);
+
+    const sub = await prisma.subscriber.findUnique({
+      where: { email: "interest-only@example.com" },
+      include: { categories: true }
+    });
+    expect(sub?.status).toBe("active");
+    expect(sub?.categories).toEqual([]);
+    expect(sub?.interestText).toBe("deprem, yapay zeka");
+  });
+
+  it("rejects with 400 when both categories and interest text are missing", async () => {
+    const res = await POST(makeRequest({ email: "nothing@example.com", categories: [] }, "15.15.15.15"));
+    expect(res.status).toBe(400);
+    const sub = await prisma.subscriber.findUnique({ where: { email: "nothing@example.com" } });
+    expect(sub).toBeNull();
+  });
+
+  it("rejects with 400 when categories is empty and the interest text fails moderation", async () => {
+    vi.mocked(processInterestText).mockResolvedValue({ interestText: null, interestEmbedding: [], rejected: true });
+    const res = await POST(
+      makeRequest(
+        { email: "empty-and-rejected@example.com", categories: [], interestText: "kötüye kullanım denemesi" },
+        "16.16.16.16"
+      )
+    );
+    expect(res.status).toBe(400);
+    const sub = await prisma.subscriber.findUnique({ where: { email: "empty-and-rejected@example.com" } });
+    expect(sub).toBeNull();
+  });
 });

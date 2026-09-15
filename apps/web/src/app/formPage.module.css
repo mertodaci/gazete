@@ -41,6 +41,30 @@
   margin-bottom: 0.4rem;
 }
 
+.interestBlock {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--accent-soft);
+  border-radius: 0.85rem;
+}
+
+.interestLabel {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--accent-ink);
+  margin-bottom: 0.35rem;
+}
+
+.interestDescription {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--accent-ink);
+  opacity: 0.85;
+  margin-bottom: 0.7rem;
+}
+
 .interestInput {
   width: 100%;
   font-family: var(--font-body);
@@ -48,7 +72,7 @@
   color: var(--ink);
   border: 1px solid var(--rule);
   border-radius: 0.6rem;
-  background: var(--bg);
+  background: var(--paper);
   padding: 0.65rem 0.85rem;
   resize: vertical;
   box-sizing: border-box;
@@ -62,7 +86,8 @@
   display: block;
   margin-top: 0.3rem;
   font-size: 0.75rem;
-  color: var(--ink-muted);
+  color: var(--accent-ink);
+  opacity: 0.7;
   text-align: right;
 }
 

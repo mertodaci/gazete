@@ -28,7 +28,11 @@ export async function getStoriesForSubscriber(subscriberId: string, digestDate: 
     prisma.subscriberCategory.findMany({ where: { subscriberId } }),
     prisma.subscriber.findUnique({ where: { id: subscriberId } })
   ]);
-  if (categories.length === 0 || !subscriber) return [];
+  // A subscriber can now rely entirely on the free-text interest with zero
+  // fixed categories, so an empty `categories` list is no longer, by itself,
+  // grounds to bail out early — the interest-embedding check below decides
+  // that instead.
+  if (!subscriber) return [];
 
   const realCategories: Category[] = categories.map((c) => c.category).filter((c) => c !== Category.son_dakika);
   const wantsBreaking = categories.some((c) => c.category === Category.son_dakika);

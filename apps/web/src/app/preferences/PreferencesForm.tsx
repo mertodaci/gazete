@@ -14,6 +14,7 @@ export function PreferencesForm({ token }: { token: string }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(false);
   const [interestRejected, setInterestRejected] = useState(false);
+  const [interestRejectedAndNoCategories, setInterestRejectedAndNoCategories] = useState(false);
 
   const SELECTABLE_VALUES = SUBSCRIBER_CATEGORY_OPTIONS.map((c) => c.value as string);
 
@@ -55,9 +56,12 @@ export function PreferencesForm({ token }: { token: string }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token, categories: selected, interestText })
     });
+    const json = await res.json().catch(() => ({}));
     if (res.ok) {
-      const json = await res.json().catch(() => ({}));
       setInterestRejected(Boolean(json.interestRejected));
+      setInterestRejectedAndNoCategories(false);
+    } else {
+      setInterestRejectedAndNoCategories(json.error === "interest_rejected_and_no_categories");
     }
     setSaved(res.ok);
     setError(!res.ok);
@@ -89,8 +93,14 @@ export function PreferencesForm({ token }: { token: string }) {
         </div>
       </fieldset>
 
-      <div className={styles.field}>
-        <label htmlFor="interestText">Kendi ilgi alanların (isteğe bağlı)</label>
+      <div className={styles.interestBlock}>
+        <label htmlFor="interestText" className={styles.interestLabel}>
+          Sana özel bir haber akışı
+        </label>
+        <p className={styles.interestDescription}>
+          Yukarıdaki kategorilerin ötesinde — istediğin herhangi bir konuyu yaz, yapay zekâmız o konudaki haberleri
+          bulup senin için mail&apos;ine eklesin.
+        </p>
         <textarea
           id="interestText"
           className={styles.interestInput}
@@ -109,14 +119,26 @@ export function PreferencesForm({ token }: { token: string }) {
         </span>
       </div>
 
-      <button type="submit" className={styles.submit} disabled={selected.length === 0}>
+      <button
+        type="submit"
+        className={styles.submit}
+        disabled={selected.length === 0 && interestText.trim().length === 0}
+      >
         Kaydet
       </button>
       {saved && !interestRejected && <p className={styles.saved}>Kaydedildi.</p>}
       {saved && interestRejected && (
         <p className={styles.error}>Kategoriler kaydedildi, ancak ilgi alanı metni kabul edilemedi.</p>
       )}
-      {error && <p className={styles.error}>Bir şeyler ters gitti, tekrar dener misin?</p>}
+      {error && !interestRejectedAndNoCategories && (
+        <p className={styles.error}>Bir şeyler ters gitti, tekrar dener misin?</p>
+      )}
+      {error && interestRejectedAndNoCategories && (
+        <p className={styles.error}>
+          Yazdığın ilgi alanı metni kabul edilemedi ve hiç kategori seçmedin — en az bir kategori seç ya da farklı
+          bir ilgi alanı yaz.
+        </p>
+      )}
     </form>
   );
 }

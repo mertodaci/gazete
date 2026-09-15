@@ -68,6 +68,7 @@ describe("POST /api/preferences", () => {
   beforeEach(async () => {
     vi.mocked(processInterestText).mockClear();
     vi.mocked(processInterestText).mockResolvedValue({ interestText: null, interestEmbedding: [], rejected: false });
+    await prisma.digestSend.deleteMany({});
     await prisma.subscriberCategory.deleteMany({});
     await prisma.subscriber.deleteMany({});
   });
@@ -182,5 +183,58 @@ describe("POST /api/preferences", () => {
     });
     expect(updated?.interestText).toBeNull();
     expect(updated?.categories.map((c) => c.category)).toEqual(["spor"]);
+  });
+
+  it("saves an empty category list when the interest text alone is provided and accepted", async () => {
+    vi.mocked(processInterestText).mockResolvedValue({
+      interestText: "deprem, yapay zeka",
+      interestEmbedding: [0.1, 0.2],
+      rejected: false
+    });
+    const { sub, token } = await makeSubscriber(["ekonomi"]);
+    const res = await POST(
+      new Request("http://localhost:3000/api/preferences", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, categories: [], interestText: "deprem, yapay zeka" })
+      })
+    );
+    expect(res.status).toBe(200);
+
+    const updated = await prisma.subscriber.findUnique({
+      where: { id: sub.id },
+      include: { categories: true }
+    });
+    expect(updated?.categories).toEqual([]);
+    expect(updated?.interestText).toBe("deprem, yapay zeka");
+  });
+
+  it("rejects with 400 when both categories and interest text are missing", async () => {
+    const { token } = await makeSubscriber(["ekonomi"]);
+    const res = await POST(
+      new Request("http://localhost:3000/api/preferences", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, categories: [] })
+      })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects with 400 when categories is empty and the interest text fails moderation", async () => {
+    vi.mocked(processInterestText).mockResolvedValue({ interestText: null, interestEmbedding: [], rejected: true });
+    const { sub, token } = await makeSubscriber(["ekonomi"]);
+    const res = await POST(
+      new Request("http://localhost:3000/api/preferences", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, categories: [], interestText: "kötüye kullanım denemesi" })
+      })
+    );
+    expect(res.status).toBe(400);
+
+    // Nothing changed — the previous categories are still intact.
+    const unchanged = await prisma.subscriberCategory.findMany({ where: { subscriberId: sub.id } });
+    expect(unchanged.map((c) => c.category)).toEqual(["ekonomi"]);
   });
 });
