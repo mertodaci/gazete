@@ -15,7 +15,11 @@ const sources: { name: string; rssUrl: string; category: Category }[] = [
   { name: "TechCrunch AI", rssUrl: "https://techcrunch.com/category/artificial-intelligence/feed/", category: "teknoloji" },
   { name: "Hürriyet Dünya", rssUrl: "https://www.hurriyet.com.tr/rss/dunya", category: "dunya" },
   { name: "NTV Sağlık", rssUrl: "https://www.ntv.com.tr/saglik.rss", category: "saglik" },
-  { name: "NTV Sanat", rssUrl: "https://www.ntv.com.tr/sanat.rss", category: "kultur_sanat" }
+  // NTV retired its dedicated "Sanat" section (the old rss URL now returns a
+  // soft-redirect with no real Location header, which no RSS client can
+  // follow) and folded that content into "Yaşam" — this is the closest
+  // living replacement for kultur_sanat coverage from this publisher.
+  { name: "NTV Yaşam", rssUrl: "https://www.ntv.com.tr/yasam.rss", category: "kultur_sanat" }
 ];
 
 async function main() {
