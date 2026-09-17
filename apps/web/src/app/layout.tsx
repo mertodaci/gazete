@@ -15,7 +15,7 @@ const workSans = Work_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Gazete",
+  title: "Türkiye'nin Gazetesi",
   description:
     "Seçtiğin kategorilerden, yapay zekâ ile özetlenmiş günlük Türkçe haber bülteni.",
 };
